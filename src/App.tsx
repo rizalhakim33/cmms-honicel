@@ -24,8 +24,10 @@ import {
   Search,
   Filter,
   Plus,
-  Menu
+  Menu,
+  FileText
 } from 'lucide-react';
+import { exportWorkOrdersToPDF } from './lib/pdfExport';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -316,6 +318,13 @@ export default function App() {
                 </button>
               )}
               <button 
+                onClick={() => exportWorkOrdersToPDF(workOrders)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-all cursor-pointer"
+                title="Export Work Orders to PDF"
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+              <button 
                 onClick={() => openModal('work_order')}
                 className="bg-blue-600 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap"
               >
@@ -410,6 +419,12 @@ export default function App() {
                   <h2 className="text-xl font-bold text-slate-800">Work Order Management</h2>
                   <p className="text-sm text-slate-500 italic">Centralized maintenance log and task tracking</p>
                 </div>
+                <button 
+                  onClick={() => exportWorkOrdersToPDF(workOrders)}
+                  className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border border-slate-200"
+                >
+                  <FileText size={16} /> EXPORT PDF
+                </button>
               </div>
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <WorkOrderTable 
