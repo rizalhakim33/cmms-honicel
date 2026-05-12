@@ -7,9 +7,13 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { KPICard } from './components/KPICard';
 import { WorkOrderTable } from './components/WorkOrderTable';
+import { AssetList } from './components/AssetList';
+import { LaborList } from './components/LaborList';
+import { PMList } from './components/PMList';
 import { AuthView } from './components/Auth';
+import { EntityFormModal } from './components/EntityFormModal';
 import { supabase, subscribeToTable, isSupabaseConfigured } from './lib/supabase';
-import { WorkOrder, Asset } from './types';
+import { WorkOrder, Asset, LaborProfile, PMSchedule } from './types';
 import { Session } from '@supabase/supabase-js';
 import { 
   Activity, 
@@ -27,8 +31,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [labor, setLabor] = useState<LaborProfile[]>([]);
+  const [pms, setPms] = useState<PMSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'asset' | 'work_order' | 'labor' | 'pm_schedule'>('work_order');
+  const [activeEntity, setActiveEntity] = useState<any>(null);
 
   // Session Listener
   useEffect(() => {
@@ -48,42 +59,80 @@ export default function App() {
   }, []);
 
   // Initial Fetch
+  const fetchData = async () => {
+    try {
+      const [woRes, assetRes, laborRes, pmRes] = await Promise.all([
+        supabase.from('work_orders').select('*, asset:assets(*), assignee:labor_profiles(*)').order('created_at', { ascending: false }),
+        supabase.from('assets').select('*').order('name'),
+        supabase.from('labor_profiles').select('*'),
+        supabase.from('pm_schedules').select('*, asset:assets(*)').order('next_due_at')
+      ]);
+
+      if (woRes.data) setWorkOrders(woRes.data);
+      if (assetRes.data) setAssets(assetRes.data);
+      if (laborRes.data) setLabor(laborRes.data);
+      if (pmRes.data) setPms(pmRes.data);
+
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!session || !isSupabaseConfigured) return;
-    const fetchData = async () => {
-      try {
-        const { data: woData } = await supabase
-          .from('work_orders')
-          .select('*, asset:assets(*), assignee:labor_profiles(*)')
-          .order('created_at', { ascending: false });
-        
-        const { data: assetData } = await supabase.from('assets').select('*');
-
-        if (woData) setWorkOrders(woData);
-        if (assetData) setAssets(assetData);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    
     fetchData();
 
     // Subscribe to Real-time Changes
-    const woSub = subscribeToTable('work_orders', (payload) => {
-      console.log('WO Change:', payload);
-      // Re-fetch or update state optimistically
-      fetchData(); 
-    });
-
+    const woSub = subscribeToTable('work_orders', () => fetchData());
     const assetSub = subscribeToTable('assets', () => fetchData());
+    const pmSub = subscribeToTable('pm_schedules', () => fetchData());
 
     return () => {
       woSub.unsubscribe();
       assetSub.unsubscribe();
+      pmSub.unsubscribe();
     };
   }, [session]);
+
+  const openModal = (type: any, entity: any = null) => {
+    setModalType(type);
+    setActiveEntity(entity);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (data: any) => {
+    const table = modalType === 'asset' ? 'assets' : 
+                  modalType === 'work_order' ? 'work_orders' : 
+                  modalType === 'labor' ? 'labor_profiles' : 'pm_schedules';
+    let res;
+    
+    // Clean data (remove joined objects)
+    const payload = { ...data };
+    delete payload.asset;
+    delete payload.assignee;
+    
+    if (data.id) {
+      res = await supabase.from(table).update(payload).eq('id', data.id);
+    } else {
+      res = await supabase.from(table).insert([payload]);
+    }
+
+    if (res.error) throw res.error;
+    fetchData();
+  };
+
+  const handleDelete = async (id: string, type: string) => {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+    const table = type === 'asset' ? 'assets' : 
+                  type === 'work_order' ? 'work_orders' : 
+                  type === 'labor' ? 'labor_profiles' : 'pm_schedules';
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) alert(error.message);
+    fetchData();
+  };
 
   // Sync PMs via Server Action
   const handleSyncPM = async () => {
@@ -159,7 +208,10 @@ export default function App() {
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={() => openModal('work_order')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              >
                 + New Work Order
               </button>
             </div>
@@ -230,21 +282,130 @@ export default function App() {
                       <span className="text-xs font-mono uppercase tracking-widest text-slate-400">Analyzing Factory State...</span>
                     </div>
                   ) : (
-                    <WorkOrderTable workOrders={workOrders} />
+                    <WorkOrderTable 
+                      workOrders={workOrders.filter(wo => 
+                        wo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        wo.asset?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                      )} 
+                      onEdit={(wo) => openModal('work_order', wo)}
+                      onDelete={(id) => handleDelete(id, 'work_order')}
+                    />
                   )}
                 </div>
               </div>
             </div>
           )}
 
-          {activeTab !== 'dashboard' && (
+          {activeTab === 'work_orders' && (
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Work Order Management</h2>
+                  <p className="text-sm text-slate-500 italic">Centralized maintenance log and task tracking</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <WorkOrderTable 
+                  workOrders={workOrders} 
+                  onEdit={(wo) => openModal('work_order', wo)}
+                  onDelete={(id) => handleDelete(id, 'work_order')}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'assets' && (
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Asset Registry</h2>
+                  <p className="text-sm text-slate-500 italic">Monitoring status of production machines</p>
+                </div>
+                <button 
+                  onClick={() => openModal('asset')}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <Plus size={16} /> NEW ASSET
+                </button>
+              </div>
+              <AssetList 
+                assets={assets} 
+                onEdit={(a) => openModal('asset', a)}
+                onDelete={(id) => handleDelete(id, 'asset')}
+              />
+            </div>
+          )}
+
+          {activeTab === 'pm_schedule' && (
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Preventive Maintenance</h2>
+                  <p className="text-sm text-slate-500 italic">Scheduled routines to prevent failure</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleSyncPM}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> SYNC DUE DATE
+                  </button>
+                  <button 
+                    onClick={() => openModal('pm_schedule')}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus size={16} /> NEW SCHEDULE
+                  </button>
+                </div>
+              </div>
+              <PMList 
+                schedules={pms} 
+                onEdit={(pm) => openModal('pm_schedule', pm)}
+                onDelete={(id) => handleDelete(id, 'pm_schedule')}
+              />
+            </div>
+          )}
+
+          {activeTab === 'labor' && (
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Maintenance Team</h2>
+                  <p className="text-sm text-slate-500 italic">Management of technician profiles and specializations</p>
+                </div>
+                <button 
+                  onClick={() => openModal('labor')}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <Plus size={16} /> NEW TECHNICIAN
+                </button>
+              </div>
+              <LaborList 
+                profiles={labor} 
+                onEdit={(l) => openModal('labor', l)}
+                onDelete={(id) => handleDelete(id, 'labor')}
+              />
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
             <div className="max-w-7xl mx-auto h-full flex items-center justify-center flex-col gap-4 text-slate-300">
                <RefreshCw className="w-12 h-12 opacity-10 animate-spin-slow" />
-               <p className="text-sm italic">Module for "{activeTab.replace('_', ' ')}" is currently in staging.</p>
+               <p className="text-sm italic">System settings and permissions are managed by facility admin.</p>
             </div>
           )}
         </div>
       </main>
+
+      <EntityFormModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        type={modalType}
+        entity={activeEntity}
+        onSave={handleSave}
+        assets={assets}
+        labor={labor}
+      />
     </div>
   );
 }

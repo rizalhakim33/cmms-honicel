@@ -18,9 +18,11 @@ const statusIcons: Record<WOStatus, React.ReactNode> = {
 
 interface Props {
   workOrders: WorkOrder[];
+  onEdit?: (wo: WorkOrder) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const WorkOrderTable: React.FC<Props> = ({ workOrders }) => {
+export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete }) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
@@ -32,12 +34,13 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders }) => {
             <th className="px-6 py-4">Asset</th>
             <th className="px-6 py-4">Assignee</th>
             <th className="px-6 py-4">Created</th>
+            <th className="px-6 py-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
           {workOrders.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm italic">
+              <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                 No active work orders found.
               </td>
             </tr>
@@ -86,6 +89,12 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders }) => {
                 </td>
                 <td className="px-6 py-4 text-xs font-mono text-slate-400">
                   {new Date(wo.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => onEdit?.(wo)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-blue-600 transition-colors cursor-pointer">Edit</button>
+                    <button onClick={() => onDelete?.(wo.id)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-rose-600 transition-colors cursor-pointer">Delete</button>
+                  </div>
                 </td>
               </tr>
             ))
