@@ -23,12 +23,14 @@ import {
   RefreshCw,
   Search,
   Filter,
-  Plus
+  Plus,
+  Menu
 } from 'lucide-react';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [labor, setLabor] = useState<LaborProfile[]>([]);
@@ -184,23 +186,36 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar activeId={activeTab} onNavigate={setActiveTab} />
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      <Sidebar 
+        activeId={activeTab} 
+        onNavigate={setActiveTab} 
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-      <main className="flex-1 overflow-y-auto flex flex-col h-full">
+      <main className="flex-1 overflow-y-auto flex flex-col h-full w-full">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
-          <h1 className="text-xl font-bold text-slate-800 capitalize">
-            {activeTab.replace('_', ' ')}
-          </h1>
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer"
+            >
+              <Menu size={20} />
+            </button>
+            <h1 className="text-lg md:text-xl font-bold text-slate-800 capitalize whitespace-nowrap">
+              {activeTab.replace('_', ' ')}
+            </h1>
+          </div>
           
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="hidden sm:flex items-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Real-time Active</span>
+              <span className="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider">Real-time Active</span>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <button 
                 onClick={handleSyncPM}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-all cursor-pointer"
@@ -210,16 +225,16 @@ export default function App() {
               </button>
               <button 
                 onClick={() => openModal('work_order')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                className="bg-blue-600 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap"
               >
-                + New Work Order
+                + <span className="hidden xs:inline">New Work Order</span><span className="xs:hidden">WO</span>
               </button>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
           {activeTab === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-6 pb-12">
               {/* KPI Summary */}
@@ -255,21 +270,21 @@ export default function App() {
 
               {/* Main Table Row */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-[400px]">
-                <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="font-bold text-slate-700">Critical Work Orders</h2>
                     <p className="text-xs text-slate-400">Live feed from factory floor</p>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative w-full">
                       <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                       <input 
                         type="text" 
                         placeholder="Search assets or issues..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-64"
+                        className="bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full sm:w-64"
                       />
                     </div>
                   </div>

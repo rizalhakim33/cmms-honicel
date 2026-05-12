@@ -91,9 +91,9 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete }
                   {new Date(wo.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onEdit?.(wo)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-blue-600 transition-colors cursor-pointer">Edit</button>
-                    <button onClick={() => onDelete?.(wo.id)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-rose-600 transition-colors cursor-pointer">Delete</button>
+                  <div className="flex justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => onEdit?.(wo)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-blue-600 transition-colors cursor-pointer whitespace-nowrap">Edit</button>
+                    <button onClick={() => onDelete?.(wo.id)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-rose-600 transition-colors cursor-pointer whitespace-nowrap">Delete</button>
                   </div>
                 </td>
               </tr>
