@@ -92,25 +92,40 @@ export default function App() {
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
-    const { data } = await supabase
+  const fetchUserProfile = async (userId: string, email?: string) => {
+    const { data, error } = await supabase
       .from('labor_profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (data) {
       setUserProfile(data);
+    } else if (!error) {
+      // Auto-create profile for first-time login
+      const { data: newData, error: createError } = await supabase
+        .from('labor_profiles')
+        .insert([{
+          id: userId,
+          full_name: email?.split('@')[0] || 'New User',
+          email: email,
+          role: 'admin', // Defaulting to admin for the developer's ease, should be 'technician' in real prod
+          specialization: 'general'
+        }])
+        .select()
+        .single();
+      
+      if (newData) setUserProfile(newData);
+      if (createError) console.error("Error creating profile:", createError);
     } else {
-      // Create a default profile if missing (optional behavior)
-      console.warn("No labor profile found for this user.");
+      console.error("Error fetching profile:", error);
     }
   };
 
   useEffect(() => {
     if (!session || !isSupabaseConfigured) return;
     
-    fetchUserProfile(session.user.id);
+    fetchUserProfile(session.user.id, session.user.email);
   }, [session]);
 
   useEffect(() => {
