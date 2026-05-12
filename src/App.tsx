@@ -8,7 +8,7 @@ import { Sidebar } from './components/Sidebar';
 import { KPICard } from './components/KPICard';
 import { WorkOrderTable } from './components/WorkOrderTable';
 import { AuthView } from './components/Auth';
-import { supabase, subscribeToTable } from './lib/supabase';
+import { supabase, subscribeToTable, isSupabaseConfigured } from './lib/supabase';
 import { WorkOrder, Asset } from './types';
 import { Session } from '@supabase/supabase-js';
 import { 
@@ -32,6 +32,8 @@ export default function App() {
 
   // Session Listener
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -47,7 +49,7 @@ export default function App() {
 
   // Initial Fetch
   useEffect(() => {
-    if (!session) return;
+    if (!session || !isSupabaseConfigured) return;
     const fetchData = async () => {
       try {
         const { data: woData } = await supabase
@@ -104,6 +106,29 @@ export default function App() {
     wo.completed_at && 
     new Date(wo.completed_at).toDateString() === new Date().toDateString()
   ).length;
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-rose-100 text-center">
+          <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={32} />
+          </div>
+          <h1 className="text-xl font-bold text-slate-800 mb-2">Konfigurasi Dibutuhkan</h1>
+          <p className="text-sm text-slate-500 mb-6">
+            Variabel <code className="bg-slate-100 px-1 rounded">VITE_SUPABASE_URL</code> dan <code className="bg-slate-100 px-1 rounded">VITE_SUPABASE_ANON_KEY</code> belum terdeteksi.
+          </p>
+          <div className="bg-slate-900 text-white p-6 rounded-xl text-left text-xs font-mono mb-6 space-y-2">
+            <p className="text-blue-400 mb-2">// Langkah perbaikan:</p>
+            <p>1. Tambahkan variabel di Vercel Settings</p>
+            <p>2. Pastikan pakai prefix <span className="text-orange-400">VITE_</span></p>
+            <p>3. <span className="text-emerald-400 font-bold">RE-DEPLOY</span> aplikasi di Vercel</p>
+          </div>
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Honeycomb e-CMMS Setup</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     return <AuthView />;
