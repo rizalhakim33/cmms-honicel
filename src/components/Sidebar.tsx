@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   LayoutDashboard, 
   Wrench, 
@@ -47,7 +48,10 @@ export const Sidebar: React.FC<{ activeId: string; onNavigate: (id: string) => v
       </nav>
 
       <div className="p-4 mt-auto border-t border-slate-800">
-        <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer">
+        <button 
+          onClick={() => supabase.auth.signOut()}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
+        >
           <LogOut className="w-5 h-5" />
           Sign Out
         </button>

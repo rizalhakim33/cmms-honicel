@@ -7,8 +7,10 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { KPICard } from './components/KPICard';
 import { WorkOrderTable } from './components/WorkOrderTable';
+import { AuthView } from './components/Auth';
 import { supabase, subscribeToTable } from './lib/supabase';
 import { WorkOrder, Asset } from './types';
+import { Session } from '@supabase/supabase-js';
 import { 
   Activity, 
   AlertCircle, 
@@ -21,14 +23,31 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Session Listener
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Initial Fetch
   useEffect(() => {
+    if (!session) return;
     const fetchData = async () => {
       try {
         const { data: woData } = await supabase
@@ -62,7 +81,7 @@ export default function App() {
       woSub.unsubscribe();
       assetSub.unsubscribe();
     };
-  }, []);
+  }, [session]);
 
   // Sync PMs via Server Action
   const handleSyncPM = async () => {
@@ -85,6 +104,10 @@ export default function App() {
     wo.completed_at && 
     new Date(wo.completed_at).toDateString() === new Date().toDateString()
   ).length;
+
+  if (!session) {
+    return <AuthView />;
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
