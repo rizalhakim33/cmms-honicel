@@ -63,8 +63,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, 
               H
             </div>
             <div>
-              <h1 className="text-white font-bold text-sm tracking-tight">e-CMMS <span className="text-blue-400">v2.0</span></h1>
-              <p className="text-[10px] uppercase tracking-widest opacity-50">Industrial Portal</p>
+              <h1 className="text-white font-bold text-sm tracking-tight">eCMMS - <span className="text-blue-400">Honicel ID</span></h1>
+              <p className="text-[10px] uppercase tracking-widest opacity-50">Industrial Portal v2.0</p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-white cursor-pointer">

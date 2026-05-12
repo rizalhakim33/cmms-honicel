@@ -1,6 +1,6 @@
 {
-  "name": "Honeycomb e-CMMS",
-  "description": "Enterprise Maintenance Management System for honeycomb paper manufacturing, featuring Real-time WO tracking, PM scheduling, and KPI analytics.",
+  "name": "eCMMS - Honicel Indonesia",
+  "description": "Enterprise Maintenance Management System for Honicel Indonesia, featuring Real-time WO tracking, PM scheduling, and KPI analytics.",
   "requestFramePermissions": [
     "camera"
   ],
