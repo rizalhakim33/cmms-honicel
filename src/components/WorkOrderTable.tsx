@@ -62,9 +62,16 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete }
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                      {wo.title}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                        {wo.title}
+                      </span>
+                      {wo.pm_id && (
+                        <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                          PM
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] font-mono text-slate-400">#{wo.id.slice(0, 8)}</span>
                   </div>
                 </td>
