@@ -19,7 +19,6 @@ create table labor_profiles (
   full_name text not null,
   specialization text,
   role text default 'technician',
-  email text unique,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

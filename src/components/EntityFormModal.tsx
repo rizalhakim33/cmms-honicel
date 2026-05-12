@@ -254,7 +254,7 @@ export const EntityFormModal: React.FC<Props> = ({
                   >
                     <option value="technician">Technician</option>
                     <option value="supervisor">Supervisor</option>
-                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
               </>
@@ -301,7 +301,14 @@ export const EntityFormModal: React.FC<Props> = ({
                       type="date"
                       required
                       value={formData.next_due_at?.split('T')[0] || ''}
-                      onChange={e => handleChange('next_due_at', e.target.value)}
+                      onChange={e => {
+                        if (e.target.value) {
+                          const date = new Date(e.target.value);
+                          if (!isNaN(date.getTime())) {
+                            handleChange('next_due_at', date.toISOString());
+                          }
+                        }
+                      }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     />
                   </div>

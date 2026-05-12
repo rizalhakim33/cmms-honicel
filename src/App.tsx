@@ -124,8 +124,8 @@ export default function App() {
   useEffect(() => {
     if (!session || !isSupabaseConfigured) return;
     
-    fetchUserProfile(session.user.id, session.user.email);
-  }, [session]);
+    fetchUserProfile(session.user.id, session.user.email || undefined);
+  }, [session, isSupabaseConfigured]);
 
   useEffect(() => {
     if (!session || !isSupabaseConfigured) return;
@@ -182,16 +182,57 @@ export default function App() {
     fetchData();
   };
 
-  // Sync PMs via Server Action
+  // Sync PMs via Client-side Logic
   const handleSyncPM = async () => {
     try {
-      const response = await fetch('/api/pm/sync', { method: 'POST' });
-      const data = await response.json();
-      if (data.success && data.count > 0) {
-        // Real-time will handle the update
+      setLoading(true);
+      // Fetch all PM schedules that are due
+      const today = new Date().toISOString();
+      const { data: duePMs, error: fetchError } = await supabase
+        .from('pm_schedules')
+        .select('*')
+        .lte('next_due_at', today);
+
+      if (fetchError) throw fetchError;
+
+      if (duePMs && duePMs.length > 0) {
+        // For each due PM, create a Work Order
+        const newWOs = duePMs.map(pm => ({
+          asset_id: pm.asset_id,
+          pm_id: pm.id,
+          title: `PM: ${pm.title}`,
+          description: pm.description || 'Preventive Maintenance Task',
+          priority: 'high',
+          status: 'open'
+        }));
+
+        const { error: woError } = await supabase.from('work_orders').insert(newWOs);
+        if (woError) throw woError;
+
+        // Update PM schedules with next due date
+        for (const pm of duePMs) {
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + pm.frequency_days);
+          
+          await supabase.from('pm_schedules')
+            .update({ 
+              last_performed_at: today,
+              next_due_at: nextDate.toISOString() 
+            })
+            .eq('id', pm.id);
+        }
+        
+        alert(`Successfully synced ${duePMs.length} preventive maintenance tasks.`);
+      } else {
+        alert('No pending PM tasks due today.');
       }
-    } catch (e) {
+      
+      fetchData();
+    } catch (e: any) {
       console.error('PM Sync failed', e);
+      alert('PM Sync failed: ' + e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
