@@ -15,10 +15,11 @@ create table assets (
 
 -- 2. Labor Profiles (Teknisi)
 create table labor_profiles (
-  id uuid default gen_random_uuid() primary key,
+  id uuid references auth.users on delete cascade primary key,
   full_name text not null,
   specialization text,
   role text default 'technician',
+  email text unique,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -67,12 +68,41 @@ alter table pm_schedules enable row level security;
 alter table work_orders enable row level security;
 alter table maintenance_logs enable row level security;
 
--- Policies (Authenticated users can perform full CRUD for development)
-create policy "Authenticated users can CRUD assets" on assets for all to authenticated using (true);
-create policy "Authenticated users can CRUD labor profiles" on labor_profiles for all to authenticated using (true);
-create policy "Authenticated users can CRUD PM schedules" on pm_schedules for all to authenticated using (true);
-create policy "Authenticated users can CRUD work orders" on work_orders for all to authenticated using (true);
-create policy "Authenticated users can CRUD maintenance logs" on maintenance_logs for all to authenticated using (true);
+-- Policies (More restrictive role-based policies)
+
+-- Public read for assets, but only admins/supervisors can write
+create policy "Read assets" on assets for select to authenticated using (true);
+create policy "Manage assets" on assets for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- Labor profiles: users can see all, but only admin can manage
+create policy "Read labor" on labor_profiles for select to authenticated using (true);
+create policy "Manage labor" on labor_profiles for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role = 'admin'));
+
+-- Work Orders:
+-- 1. Everyone can read
+-- 2. Technicians can UPDATE work orders assigned to them
+-- 3. Supervisors/Admins can do everything
+create policy "Read work orders" on work_orders for select to authenticated using (true);
+create policy "Create work orders" on work_orders for insert to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+create policy "Technicians update assigned items" on work_orders for update to authenticated 
+  using (
+    assignee_id = auth.uid() 
+    or exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor'))
+  );
+create policy "Delete work orders" on work_orders for delete to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- PM Schedules
+create policy "Read PM" on pm_schedules for select to authenticated using (true);
+create policy "Manage PM" on pm_schedules for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- Maintenance logs
+create policy "Read logs" on maintenance_logs for select to authenticated using (true);
+create policy "Create logs" on maintenance_logs for insert to authenticated using (true);
 
 -- Function to handle auto-timestamp on update
 create or replace function handle_updated_at()

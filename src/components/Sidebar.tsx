@@ -26,9 +26,17 @@ interface SidebarProps {
   onNavigate: (id: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  userRole?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, onClose, userRole }) => {
+  const filteredNavItems = navItems.filter(item => {
+    if (userRole === 'technician') {
+      return !['labor', 'settings'].includes(item.id);
+    }
+    return true;
+  });
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -65,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, 
         </div>
 
         <nav className="flex-1 py-4 space-y-1 overflow-y-auto px-4">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <button
               key={item.id}
               onClick={() => {

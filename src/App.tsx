@@ -29,6 +29,7 @@ import {
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<LaborProfile | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -63,8 +64,17 @@ export default function App() {
   // Initial Fetch
   const fetchData = async () => {
     try {
+      setLoading(true);
+      const isTechnician = userProfile?.role === 'technician';
+      
+      let woQuery = supabase.from('work_orders').select('*, asset:assets(*), assignee:assignee_id(*)');
+      
+      if (isTechnician) {
+        woQuery = woQuery.eq('assignee_id', userProfile.id);
+      }
+      
       const [woRes, assetRes, laborRes, pmRes] = await Promise.all([
-        supabase.from('work_orders').select('*, asset:assets(*), assignee:assignee_id(*)').order('created_at', { ascending: false }),
+        woQuery.order('created_at', { ascending: false }),
         supabase.from('assets').select('*').order('name'),
         supabase.from('labor_profiles').select('*'),
         supabase.from('pm_schedules').select('*, asset:assets(*)').order('next_due_at')
@@ -82,8 +92,30 @@ export default function App() {
     }
   };
 
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('labor_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (data) {
+      setUserProfile(data);
+    } else {
+      // Create a default profile if missing (optional behavior)
+      console.warn("No labor profile found for this user.");
+    }
+  };
+
   useEffect(() => {
     if (!session || !isSupabaseConfigured) return;
+    
+    fetchUserProfile(session.user.id);
+  }, [session]);
+
+  useEffect(() => {
+    if (!session || !isSupabaseConfigured) return;
+    if (!userProfile) return; // Wait for role check
     
     fetchData();
 
@@ -150,6 +182,8 @@ export default function App() {
   };
 
   // KPIs
+  const isSupervisor = userProfile?.role === 'admin' || userProfile?.role === 'supervisor';
+
   const activeWOs = workOrders.filter(wo => wo.status !== 'completed').length;
   const downMachines = assets.filter(a => a.status === 'down').length;
   const completedToday = workOrders.filter(wo => 
@@ -192,6 +226,7 @@ export default function App() {
         onNavigate={setActiveTab} 
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        userRole={userProfile?.role}
       />
 
       <main className="flex-1 overflow-y-auto flex flex-col h-full w-full">
@@ -216,13 +251,15 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-2 md:gap-3">
-              <button 
-                onClick={handleSyncPM}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-all cursor-pointer"
-                title="Sync PM Schedules"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+              {isSupervisor && (
+                <button 
+                  onClick={handleSyncPM}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-all cursor-pointer"
+                  title="Sync PM Schedules"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              )}
               <button 
                 onClick={() => openModal('work_order')}
                 className="bg-blue-600 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap"
@@ -303,7 +340,7 @@ export default function App() {
                         wo.asset?.name?.toLowerCase().includes(searchTerm.toLowerCase())
                       )} 
                       onEdit={(wo) => openModal('work_order', wo)}
-                      onDelete={(id) => handleDelete(id, 'work_order')}
+                      onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
                     />
                   )}
                 </div>
@@ -323,7 +360,7 @@ export default function App() {
                 <WorkOrderTable 
                   workOrders={workOrders} 
                   onEdit={(wo) => openModal('work_order', wo)}
-                  onDelete={(id) => handleDelete(id, 'work_order')}
+                  onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
                 />
               </div>
             </div>
@@ -336,17 +373,19 @@ export default function App() {
                   <h2 className="text-xl font-bold text-slate-800">Asset Registry</h2>
                   <p className="text-sm text-slate-500 italic">Monitoring status of production machines</p>
                 </div>
-                <button 
-                  onClick={() => openModal('asset')}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <Plus size={16} /> NEW ASSET
-                </button>
+                {isSupervisor && (
+                  <button 
+                    onClick={() => openModal('asset')}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus size={16} /> NEW ASSET
+                  </button>
+                )}
               </div>
               <AssetList 
                 assets={assets} 
-                onEdit={(a) => openModal('asset', a)}
-                onDelete={(id) => handleDelete(id, 'asset')}
+                onEdit={isSupervisor ? (a) => openModal('asset', a) : undefined}
+                onDelete={isSupervisor ? (id) => handleDelete(id, 'asset') : undefined}
               />
             </div>
           )}
@@ -375,8 +414,8 @@ export default function App() {
               </div>
               <PMList 
                 schedules={pms} 
-                onEdit={(pm) => openModal('pm_schedule', pm)}
-                onDelete={(id) => handleDelete(id, 'pm_schedule')}
+                onEdit={isSupervisor ? (pm) => openModal('pm_schedule', pm) : undefined}
+                onDelete={isSupervisor ? (id) => handleDelete(id, 'pm_schedule') : undefined}
               />
             </div>
           )}
@@ -388,17 +427,19 @@ export default function App() {
                   <h2 className="text-xl font-bold text-slate-800">Maintenance Team</h2>
                   <p className="text-sm text-slate-500 italic">Management of technician profiles and specializations</p>
                 </div>
-                <button 
-                  onClick={() => openModal('labor')}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <Plus size={16} /> NEW TECHNICIAN
-                </button>
+                {userProfile?.role === 'admin' && (
+                  <button 
+                    onClick={() => openModal('labor')}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Plus size={16} /> NEW TECHNICIAN
+                  </button>
+                )}
               </div>
               <LaborList 
                 profiles={labor} 
-                onEdit={(l) => openModal('labor', l)}
-                onDelete={(id) => handleDelete(id, 'labor')}
+                onEdit={userProfile?.role === 'admin' ? (l) => openModal('labor', l) : undefined}
+                onDelete={userProfile?.role === 'admin' ? (id) => handleDelete(id, 'labor') : undefined}
               />
             </div>
           )}
