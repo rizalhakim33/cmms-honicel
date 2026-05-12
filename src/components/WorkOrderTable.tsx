@@ -13,7 +13,7 @@ const statusIcons: Record<WOStatus, React.ReactNode> = {
   open: <Circle className="w-3 h-3" />,
   in_progress: <Clock className="w-3 h-3 animate-spin-slow" />,
   pending: <AlertTriangle className="w-3 h-3" />,
-  closed: <CheckCircle2 className="w-3 h-3" />,
+  completed: <CheckCircle2 className="w-3 h-3" />,
 };
 
 interface Props {
@@ -54,7 +54,7 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete }
                   <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider
                     ${wo.status === 'open' ? 'text-blue-600' : ''}
                     ${wo.status === 'in_progress' ? 'text-amber-600' : ''}
-                    ${wo.status === 'closed' ? 'text-emerald-600' : ''}
+                    ${wo.status === 'completed' ? 'text-emerald-600' : ''}
                   `}>
                     {statusIcons[wo.status]}
                     {wo.status.replace('_', ' ')}

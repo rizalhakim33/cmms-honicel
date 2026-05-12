@@ -109,13 +109,17 @@ export const EntityFormModal: React.FC<Props> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Category</label>
-                    <input 
+                    <select 
                       required
-                      value={formData.category || ''}
+                      value={formData.category || 'other'}
                       onChange={e => handleChange('category', e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      placeholder="e.g. Production"
-                    />
+                    >
+                      <option value="cutter">Cutter</option>
+                      <option value="glue_spreader">Glue Spreader</option>
+                      <option value="conveyor">Conveyor</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Location</label>
@@ -200,7 +204,7 @@ export const EntityFormModal: React.FC<Props> = ({
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
-                      <option value="critical">Critical</option>
+                      <option value="urgent">Urgent</option>
                     </select>
                   </div>
                   <div>
@@ -212,7 +216,7 @@ export const EntityFormModal: React.FC<Props> = ({
                     >
                       <option value="open">Open</option>
                       <option value="in_progress">In Progress</option>
-                      <option value="closed">Closed</option>
+                      <option value="completed">Completed</option>
                     </select>
                   </div>
                 </div>

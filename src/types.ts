@@ -1,16 +1,16 @@
-export type WOStatus = 'open' | 'in_progress' | 'pending' | 'closed';
+export type WOStatus = 'open' | 'in_progress' | 'pending' | 'completed';
 export type WOPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type AssetStatus = 'operational' | 'under_maintenance' | 'down';
-export type AssetCategory = 'cutter' | 'glue_spreader' | 'conveyor' | 'other';
+export type AssetCategory = string;
 
 export interface Asset {
   id: string;
   name: string;
-  category: AssetCategory;
+  category: string;
   location: string;
   technical_specs: Record<string, any>;
   qr_code_data: string | null;
-  status: AssetStatus;
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -18,8 +18,8 @@ export interface Asset {
 export interface LaborProfile {
   id: string;
   full_name: string;
-  specialization: 'mechanical' | 'electrical' | 'general';
-  role: 'technician' | 'supervisor' | 'admin';
+  specialization: string;
+  role: string;
 }
 
 export interface WorkOrder {
@@ -30,7 +30,7 @@ export interface WorkOrder {
   description: string | null;
   status: WOStatus;
   priority: WOPriority;
-  assigned_to: string | null;
+  assignee_id: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

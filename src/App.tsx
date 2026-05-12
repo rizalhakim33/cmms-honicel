@@ -62,7 +62,7 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [woRes, assetRes, laborRes, pmRes] = await Promise.all([
-        supabase.from('work_orders').select('*, asset:assets(*), assignee:labor_profiles(*)').order('created_at', { ascending: false }),
+        supabase.from('work_orders').select('*, asset:assets(*), assignee:assignee_id(*)').order('created_at', { ascending: false }),
         supabase.from('assets').select('*').order('name'),
         supabase.from('labor_profiles').select('*'),
         supabase.from('pm_schedules').select('*, asset:assets(*)').order('next_due_at')
@@ -148,10 +148,10 @@ export default function App() {
   };
 
   // KPIs
-  const activeWOs = workOrders.filter(wo => wo.status !== 'closed').length;
+  const activeWOs = workOrders.filter(wo => wo.status !== 'completed').length;
   const downMachines = assets.filter(a => a.status === 'down').length;
   const completedToday = workOrders.filter(wo => 
-    wo.status === 'closed' && 
+    wo.status === 'completed' && 
     wo.completed_at && 
     new Date(wo.completed_at).toDateString() === new Date().toDateString()
   ).length;
