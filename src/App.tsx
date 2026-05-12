@@ -108,7 +108,6 @@ export default function App() {
         .insert([{
           id: userId,
           full_name: email?.split('@')[0] || 'New User',
-          email: email,
           role: 'admin', // Defaulting to admin for the developer's ease, should be 'technician' in real prod
           specialization: 'general'
         }])
