@@ -258,6 +258,8 @@ export default function App() {
     exportWorkOrdersToPDF(filtered);
   };
 
+  const isSupervisor = userProfile?.role === 'admin' || userProfile?.role === 'supervisor';
+
   const activeWOs = workOrders.filter(wo => wo.status !== 'completed').length;
   const downMachines = assets.filter(a => a.status === 'down').length;
   const completedToday = workOrders.filter(wo => 
