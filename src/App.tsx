@@ -40,6 +40,7 @@ export default function App() {
   const [pms, setPms] = useState<PMSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -238,8 +239,24 @@ export default function App() {
     }
   };
 
-  // KPIs
-  const isSupervisor = userProfile?.role === 'admin' || userProfile?.role === 'supervisor';
+  // Filtered Export
+  const handleExportFilteredPDF = () => {
+    let filtered = [...workOrders];
+    
+    if (dateRange.start) {
+      const start = new Date(dateRange.start);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(wo => new Date(wo.created_at) >= start);
+    }
+    
+    if (dateRange.end) {
+      const end = new Date(dateRange.end);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(wo => new Date(wo.created_at) <= end);
+    }
+    
+    exportWorkOrdersToPDF(filtered);
+  };
 
   const activeWOs = workOrders.filter(wo => wo.status !== 'completed').length;
   const downMachines = assets.filter(a => a.status === 'down').length;
@@ -414,17 +431,44 @@ export default function App() {
 
           {activeTab === 'work_orders' && (
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Work Order Management</h2>
                   <p className="text-sm text-slate-500 italic">Centralized maintenance log and task tracking</p>
                 </div>
-                <button 
-                  onClick={() => exportWorkOrdersToPDF(workOrders)}
-                  className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border border-slate-200"
-                >
-                  <FileText size={16} /> EXPORT PDF
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">From:</span>
+                    <input 
+                      type="date" 
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer"
+                    />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase ml-2">To:</span>
+                    <input 
+                      type="date" 
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer"
+                    />
+                    {(dateRange.start || dateRange.end) && (
+                      <button 
+                        onClick={() => setDateRange({ start: '', end: '' })}
+                        className="ml-2 text-slate-400 hover:text-rose-500 transition-colors"
+                        title="Clear Dates"
+                      >
+                        <AlertCircle size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <button 
+                    onClick={handleExportFilteredPDF}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border border-slate-200"
+                  >
+                    <FileText size={16} /> EXPORT PDF
+                  </button>
+                </div>
               </div>
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <WorkOrderTable 
