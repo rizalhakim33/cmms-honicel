@@ -8,7 +8,9 @@ import {
   Users, 
   Settings, 
   LogOut,
-  X
+  X,
+  PackageCheck,
+  TrendingDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -17,6 +19,8 @@ const navItems = [
   { id: 'work_orders', label: 'Work Orders', icon: Wrench },
   { id: 'assets', label: 'Assets', icon: Factory },
   { id: 'pm_schedule', label: 'PM Schedule', icon: CalendarClock },
+  { id: 'spare_parts', label: 'Spare Parts', icon: PackageCheck },
+  { id: 'cash_flow', label: 'Cash Flow', icon: TrendingDown },
   { id: 'labor', label: 'Labor Profiles', icon: Users },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

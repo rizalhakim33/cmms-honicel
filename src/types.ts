@@ -36,6 +36,10 @@ export interface WorkOrder {
   created_at: string;
   updated_at: string;
   
+  // Replaced sparepart tracking
+  replaced_sparepart_name?: string | null;
+  replaced_sparepart_qty?: number | null;
+  
   // Joins
   asset?: Asset;
   assignee?: LaborProfile;
@@ -51,4 +55,38 @@ export interface PMSchedule {
   next_due_at: string;
   created_at: string;
   asset?: Asset;
+}
+
+export interface Sparepart {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  estimated_lifetime_hours: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InstalledSparepart {
+  id: string;
+  asset_id: string;
+  work_order_id: string | null;
+  sparepart_name: string;
+  quantity: number;
+  installed_at: string;
+  estimated_lifetime_hours: number;
+  created_at: string;
+  
+  // Join
+  asset?: Asset;
+}
+
+export interface CashFlow {
+  id: string;
+  type: 'sparepart' | 'operational';
+  title: string;
+  amount: number;
+  date: string;
+  reference_id: string | null;
+  created_at: string;
 }

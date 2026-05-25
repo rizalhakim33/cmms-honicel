@@ -220,6 +220,38 @@ export const EntityFormModal: React.FC<Props> = ({
                     </select>
                   </div>
                 </div>
+
+                {/* Replaced spare part input tracking */}
+                <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 space-y-3">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Suku Cadang / Spare Part Diganti (Opsional)
+                  </span>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Nama Spare Part</label>
+                      <input 
+                        type="text"
+                        value={formData.replaced_sparepart_name || ''}
+                        onChange={e => handleChange('replaced_sparepart_name', e.target.value)}
+                        placeholder="e.g. Belt Conveyor, NSK Bearing"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-550"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Jumlah</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        value={formData.replaced_sparepart_qty || 1}
+                        onChange={e => handleChange('replaced_sparepart_qty', parseInt(e.target.value) || 1)}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-550 text-center"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-slate-400 leading-relaxed">
+                    Stok suku cadang gudang otomatis berkurang dan dicatat pada pengeluaran finansial jika status WO 'Completed'.
+                  </p>
+                </div>
               </>
             )}
 

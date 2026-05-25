@@ -28,6 +28,8 @@ import {
   FileText
 } from 'lucide-react';
 import { exportWorkOrdersToPDF } from './lib/pdfExport';
+import { SparepartsManager } from './components/SparepartsManager';
+import { CashFlowManager } from './components/CashFlowManager';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -41,6 +43,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  const [selectedAssetFilter, setSelectedAssetFilter] = useState('');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -172,6 +175,117 @@ export default function App() {
     }
 
     if (res.error) throw res.error;
+
+    // Handle completed work order automatic inventory deductions & accounting logs
+    if (modalType === 'work_order' && payload.status === 'completed' && payload.replaced_sparepart_name && payload.replaced_sparepart_name.trim()) {
+      try {
+        const spName = payload.replaced_sparepart_name.trim();
+        const qty = payload.replaced_sparepart_qty || 1;
+        let price = 150000;
+        let estLifetime = 2000;
+
+        const { data: matchedSp } = await supabase
+          .from('spareparts')
+          .select('*')
+          .ilike('name', spName)
+          .maybeSingle();
+
+        if (matchedSp) {
+          price = matchedSp.price;
+          estLifetime = matchedSp.estimated_lifetime_hours;
+          
+          await supabase
+            .from('spareparts')
+            .update({ stock: Math.max(0, matchedSp.stock - qty) })
+            .eq('id', matchedSp.id);
+        } else {
+          await supabase
+            .from('spareparts')
+            .insert([{
+              name: spName,
+              stock: 0,
+              price: price,
+              estimated_lifetime_hours: estLifetime
+            }]);
+        }
+
+        await supabase
+          .from('installed_spareparts')
+          .insert([{
+            asset_id: payload.asset_id,
+            work_order_id: payload.id || null,
+            sparepart_name: spName,
+            quantity: qty,
+            installed_at: new Date().toISOString(),
+            estimated_lifetime_hours: estLifetime
+          }]);
+
+        const targetAsset = assets.find(a => a.id === payload.asset_id);
+        const assetName = targetAsset ? targetAsset.name : 'Mesin';
+        await supabase
+          .from('cash_flows')
+          .insert([{
+            type: 'sparepart',
+            title: `Replace ${spName} on ${assetName}`,
+            amount: price * qty,
+            date: new Date().toISOString().split('T')[0],
+            reference_id: payload.id || null
+          }]);
+
+      } catch (err) {
+        console.warn("Table auto actions failed (maybe SQL tables aren't created yet or offline):", err);
+        const localSp = localStorage.getItem('honicel_spareparts');
+        const fallbackSp = localSp ? JSON.parse(localSp) : [];
+        const matched = fallbackSp.find((x: any) => x.name.toLowerCase() === payload.replaced_sparepart_name.trim().toLowerCase());
+        
+        let price = 150000;
+        let estLifetime = 2000;
+        if (matched) {
+          price = matched.price;
+          estLifetime = matched.estimated_lifetime_hours;
+          matched.stock = Math.max(0, matched.stock - (payload.replaced_sparepart_qty || 1));
+          localStorage.setItem('honicel_spareparts', JSON.stringify(fallbackSp));
+        } else {
+          fallbackSp.push({
+            id: crypto.randomUUID(),
+            name: payload.replaced_sparepart_name.trim(),
+            stock: 0,
+            price: price,
+            estimated_lifetime_hours: estLifetime,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          localStorage.setItem('honicel_spareparts', JSON.stringify(fallbackSp));
+        }
+
+        const localInst = localStorage.getItem('honicel_installed_spareparts');
+        const fallbackInst = localInst ? JSON.parse(localInst) : [];
+        fallbackInst.push({
+          id: crypto.randomUUID(),
+          asset_id: payload.asset_id,
+          work_order_id: payload.id || null,
+          sparepart_name: payload.replaced_sparepart_name.trim(),
+          quantity: payload.replaced_sparepart_qty || 1,
+          installed_at: new Date().toISOString(),
+          estimated_lifetime_hours: estLifetime
+        });
+        localStorage.setItem('honicel_installed_spareparts', JSON.stringify(fallbackInst));
+
+        const localCash = localStorage.getItem('honicel_cashflows');
+        const fallbackCash = localCash ? JSON.parse(localCash) : [];
+        fallbackCash.unshift({
+          id: crypto.randomUUID(),
+          type: 'sparepart',
+          title: `Autonomous Expense: ${payload.replaced_sparepart_name} on Machine`,
+          amount: price * (payload.replaced_sparepart_qty || 1),
+          date: new Date().toISOString().split('T')[0],
+          reference_id: payload.id || null,
+          created_at: new Date().toISOString()
+        });
+        localStorage.setItem('honicel_cashflows', JSON.stringify(fallbackCash));
+      }
+    }
+
     fetchData();
   };
 
@@ -239,10 +353,16 @@ export default function App() {
     }
   };
 
-  // Filtered Export
-  const handleExportFilteredPDF = () => {
+  // Get filtered list combining machine and date ranges
+  const getFilteredWorkOrders = () => {
     let filtered = [...workOrders];
-    
+
+    // Selected Asset/Machine Filter
+    if (selectedAssetFilter) {
+      filtered = filtered.filter(wo => wo.asset_id === selectedAssetFilter);
+    }
+
+    // Date Range Filter
     if (dateRange.start) {
       const start = new Date(dateRange.start);
       start.setHours(0, 0, 0, 0);
@@ -254,8 +374,19 @@ export default function App() {
       end.setHours(23, 59, 59, 999);
       filtered = filtered.filter(wo => new Date(wo.created_at) <= end);
     }
-    
-    exportWorkOrdersToPDF(filtered);
+
+    return filtered;
+  };
+
+  // Filtered Export with formal header parameters
+  const handleExportFilteredPDF = () => {
+    const filtered = getFilteredWorkOrders();
+    const assetName = assets.find(a => a.id === selectedAssetFilter)?.name || undefined;
+    exportWorkOrdersToPDF(filtered, {
+      assetName,
+      startDate: dateRange.start || undefined,
+      endDate: dateRange.end || undefined
+    });
   };
 
   const isSupervisor = userProfile?.role === 'admin' || userProfile?.role === 'supervisor';
@@ -438,7 +569,23 @@ export default function App() {
                   <h2 className="text-xl font-bold text-slate-800">Work Order Management</h2>
                   <p className="text-sm text-slate-500 italic">Centralized maintenance log and task tracking</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                  {/* Dropdown Mesin/Asset Filter */}
+                  <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Mesin:</span>
+                    <select
+                      value={selectedAssetFilter}
+                      onChange={e => setSelectedAssetFilter(e.target.value)}
+                      className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer text-slate-705 font-bold outline-none"
+                    >
+                      <option value="">Semua Mesin</option>
+                      {assets.map(a => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date Picker Range Filter */}
                   <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">From:</span>
                     <input 
@@ -454,11 +601,14 @@ export default function App() {
                       onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                       className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer"
                     />
-                    {(dateRange.start || dateRange.end) && (
+                    {(dateRange.start || dateRange.end || selectedAssetFilter) && (
                       <button 
-                        onClick={() => setDateRange({ start: '', end: '' })}
-                        className="ml-2 text-slate-400 hover:text-rose-500 transition-colors"
-                        title="Clear Dates"
+                        onClick={() => {
+                          setDateRange({ start: '', end: '' });
+                          setSelectedAssetFilter('');
+                        }}
+                        className="ml-2 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                        title="Clear Filters"
                       >
                         <AlertCircle size={14} />
                       </button>
@@ -474,7 +624,7 @@ export default function App() {
               </div>
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <WorkOrderTable 
-                  workOrders={workOrders} 
+                  workOrders={getFilteredWorkOrders()} 
                   onEdit={(wo) => openModal('work_order', wo)}
                   onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
                 />
@@ -534,6 +684,14 @@ export default function App() {
                 onDelete={isSupervisor ? (id) => handleDelete(id, 'pm_schedule') : undefined}
               />
             </div>
+          )}
+
+          {activeTab === 'spare_parts' && (
+            <SparepartsManager assets={assets} />
+          )}
+
+          {activeTab === 'cash_flow' && (
+            <CashFlowManager />
           )}
 
           {activeTab === 'labor' && (
