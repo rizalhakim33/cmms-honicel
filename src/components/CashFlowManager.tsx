@@ -197,6 +197,10 @@ export const CashFlowManager: React.FC = () => {
     .filter(cf => cf.type === 'operational')
     .reduce((acc, c) => acc + Number(c.amount), 0);
 
+  const toolTotal = cashFlows
+    .filter(cf => cf.type === 'tool')
+    .reduce((acc, c) => acc + Number(c.amount), 0);
+
   // Group by Month names for SVG graph visualization
   const getMonthlyChartData = () => {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
@@ -268,13 +272,13 @@ export const CashFlowManager: React.FC = () => {
       </div>
 
       {/* Mini Grid Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
             <TrendingDown size={20} />
           </div>
           <div>
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pengeluaran</span>
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</span>
             <span className="text-lg font-bold text-slate-800">{formatRupiah(totalAllTime)}</span>
           </div>
         </div>
@@ -284,29 +288,24 @@ export const CashFlowManager: React.FC = () => {
             <ArrowDownCircle size={20} />
           </div>
           <div>
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bulan Ini ({new Date().toLocaleString('id-ID', { month: 'long' })})</span>
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bulan Ini</span>
             <span className="text-lg font-bold text-slate-800 text-indigo-600">{formatRupiah(currentMonthTotal)}</span>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <Tag size={20} />
-          </div>
-          <div>
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Biaya Sparepart</span>
-            <span className="text-lg font-bold text-slate-800">{formatRupiah(sparepartTotal)}</span>
-          </div>
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-center gap-1">
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Suku Cadang</span>
+          <span className="text-base font-bold text-slate-800 truncate">{formatRupiah(sparepartTotal)}</span>
         </div>
 
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <Activity size={20} />
-          </div>
-          <div>
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Biaya Jasa & Operasional</span>
-            <span className="text-lg font-bold text-slate-800">{formatRupiah(operationalTotal)}</span>
-          </div>
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-center gap-1">
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jasa & Vendor</span>
+          <span className="text-base font-bold text-slate-800 truncate">{formatRupiah(operationalTotal)}</span>
+        </div>
+
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-center gap-1">
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alat Kerja</span>
+          <span className="text-base font-bold text-slate-800 truncate">{formatRupiah(toolTotal)}</span>
         </div>
       </div>
 
@@ -369,8 +368,9 @@ export const CashFlowManager: React.FC = () => {
               className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold"
             >
               <option value="all">Semua Tipe</option>
-              <option value="sparepart">Sparepart Terpakai</option>
-              <option value="operational">Operasional & Jasa</option>
+              <option value="sparepart">Suku Cadang / Material</option>
+              <option value="operational">Jasa / Vendor Luar</option>
+              <option value="tool">Operasional & Alat Kerja</option>
             </select>
           </div>
         </div>
@@ -403,9 +403,11 @@ export const CashFlowManager: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
                         cf.type === 'sparepart' 
                           ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                          : 'bg-amber-50 text-amber-600 border border-amber-100'
+                          : cf.type === 'operational'
+                          ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                          : 'bg-purple-50 text-purple-600 border border-purple-100'
                       }`}>
-                        {cf.type === 'sparepart' ? 'SPAREPART' : 'OPERATIONAL'}
+                        {cf.type}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-800">{cf.title}</td>
@@ -450,8 +452,9 @@ export const CashFlowManager: React.FC = () => {
                   onChange={(e: any) => setType(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
                 >
-                  <option value="operational">Jasa Kontraktor / Jasa Teknisi Vendor Luar</option>
-                  <option value="sparepart">Pembelian Oli / Lubricant / Bulk Supplies</option>
+                  <option value="operational">Jasa / Vendor Luar</option>
+                  <option value="sparepart">Pembelian Suku Cadang / Material</option>
+                  <option value="tool">Operasional & Alat Kerja</option>
                 </select>
               </div>
 

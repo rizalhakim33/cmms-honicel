@@ -83,7 +83,7 @@ export interface InstalledSparepart {
 
 export interface CashFlow {
   id: string;
-  type: 'sparepart' | 'operational';
+  type: 'sparepart' | 'operational' | 'tool';
   title: string;
   amount: number;
   date: string;

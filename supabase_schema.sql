@@ -83,13 +83,23 @@ create table if not exists installed_spareparts (
 -- 4.3 Cash Flows Ledger (Arus Kas Pengeluaran Perawatan)
 create table if not exists cash_flows (
   id uuid default gen_random_uuid() primary key,
-  type text not null check (type in ('sparepart', 'operational')),
+  type text not null check (type in ('sparepart', 'operational', 'tool')),
   title text not null,
   amount numeric not null check (amount > 0),
   date date not null default current_date,
   reference_id uuid references work_orders(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Note: to actually apply safely, drop existing constraint first
+do $$
+begin
+  alter table cash_flows drop constraint if exists cash_flows_type_check;
+exception
+  when undefined_table then null;
+end $$;
+
+alter table cash_flows add constraint cash_flows_type_check check (type in ('sparepart', 'operational', 'tool'));
 
 -- 5. Maintenance Logs (Audit Trail)
 create table if not exists maintenance_logs (

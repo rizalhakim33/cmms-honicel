@@ -207,10 +207,10 @@ export const CSVImportExport: React.FC<Props> = ({
           }
 
           else if (type === 'cash_flow') {
-            const validTypes = ['sparepart', 'operational'];
+            const validTypes = ['sparepart', 'operational', 'tool'];
             const checkedType = record.type?.toLowerCase();
             if (!checkedType || !validTypes.includes(checkedType)) {
-              throw new Error(`Baris ke-${rowNum}: Tipe finansial harus "sparepart" atau "operational"!`);
+              throw new Error(`Baris ke-${rowNum}: Tipe finansial harus "sparepart", "operational", atau "tool"!`);
             }
             record.type = checkedType;
 
