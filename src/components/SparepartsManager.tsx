@@ -87,17 +87,14 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
 
   const handleImportSpareparts = async (newSp: any[]) => {
     try {
-      const withIds = newSp.map(item => ({
-        id: crypto.randomUUID(),
+      const withoutIds = newSp.map(item => ({
         name: item.name,
         stock: item.stock,
         price: item.price,
-        estimated_lifetime_hours: item.estimated_lifetime_hours,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        estimated_lifetime_hours: item.estimated_lifetime_hours
       }));
 
-      const { error } = await supabase.from('spareparts').insert(withIds);
+      const { error } = await supabase.from('spareparts').upsert(withoutIds, { onConflict: 'name' });
       if (error) {
         throw new Error(error.message || "Gagal memasukkan data massal ke database.");
       }
