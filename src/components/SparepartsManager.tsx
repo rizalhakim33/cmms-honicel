@@ -87,11 +87,27 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
 
   const handleImportSpareparts = async (newSp: any[]) => {
     try {
-      const withoutIds = newSp.map(item => ({
+      // Deduplicate items by name to prevent "ON CONFLICT DO UPDATE command cannot affect row a second time"
+      const uniqueSpMap = new Map<string, any>();
+      newSp.forEach(item => {
+        const key = item.name.trim().toLowerCase();
+        if (uniqueSpMap.has(key)) {
+          const existing = uniqueSpMap.get(key);
+          uniqueSpMap.set(key, {
+            ...item,
+            name: existing.name, // Keep original casing
+            stock: existing.stock + (item.stock || 0)
+          });
+        } else {
+          uniqueSpMap.set(key, item);
+        }
+      });
+
+      const withoutIds = Array.from(uniqueSpMap.values()).map(item => ({
         name: item.name,
-        stock: item.stock,
-        price: item.price,
-        estimated_lifetime_hours: item.estimated_lifetime_hours
+        stock: item.stock || 0,
+        price: item.price || 0,
+        estimated_lifetime_hours: item.estimated_lifetime_hours || 2000
       }));
 
       const { error } = await supabase.from('spareparts').upsert(withoutIds, { onConflict: 'name' });
