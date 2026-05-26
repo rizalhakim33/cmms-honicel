@@ -44,10 +44,46 @@ create table work_orders (
   status text default 'open',
   priority text default 'medium',
   assignee_id uuid references labor_profiles(id) on delete set null,
+  replaced_sparepart_name text,
+  replaced_sparepart_qty integer default 1 check (replaced_sparepart_qty > 0),
   started_at timestamp with time zone,
   completed_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 4.1 Spareparts Catalog (Suku Cadang Gudang)
+create table spareparts (
+  id uuid default gen_random_uuid() primary key,
+  name text not null unique,
+  stock integer default 0 check (stock >= 0),
+  price numeric default 0 check (price >= 0),
+  estimated_lifetime_hours integer default 2000 check (estimated_lifetime_hours > 0),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 4.2 Installed Spareparts Tracking (Pencatatan Umur Suku Cadang Terpasang)
+create table installed_spareparts (
+  id uuid default gen_random_uuid() primary key,
+  asset_id uuid references assets(id) on delete cascade not null,
+  work_order_id uuid references work_orders(id) on delete set null,
+  sparepart_name text not null,
+  quantity integer default 1 check (quantity > 0),
+  installed_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  estimated_lifetime_hours integer default 2000 check (estimated_lifetime_hours > 0),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 4.3 Cash Flows Ledger (Arus Kas Pengeluaran Perawatan)
+create table cash_flows (
+  id uuid default gen_random_uuid() primary key,
+  type text not null check (type in ('sparepart', 'operational')),
+  title text not null,
+  amount numeric not null check (amount > 0),
+  date date not null default current_date,
+  reference_id uuid references work_orders(id) on delete set null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- 5. Maintenance Logs (Audit Trail)
@@ -66,12 +102,31 @@ alter table labor_profiles enable row level security;
 alter table pm_schedules enable row level security;
 alter table work_orders enable row level security;
 alter table maintenance_logs enable row level security;
+alter table spareparts enable row level security;
+alter table installed_spareparts enable row level security;
+alter table cash_flows enable row level security;
 
 -- Policies (More restrictive role-based policies)
 
 -- Public read for assets, but only admins/supervisors can write
 create policy "Read assets" on assets for select to authenticated using (true);
 create policy "Manage assets" on assets for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- Spareparts: authenticated read, write for admins/supervisors
+create policy "Read spareparts" on spareparts for select to authenticated using (true);
+create policy "Manage spareparts" on spareparts for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- Installed spareparts: authenticated read, any crew can insert log context
+create policy "Read installed parts" on installed_spareparts for select to authenticated using (true);
+create policy "Insert installed parts" on installed_spareparts for insert to authenticated using (true);
+create policy "Manage installed parts" on installed_spareparts for all to authenticated 
+  using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
+
+-- Cash flows accounting ledger: authenticated read, write for admins/supervisors
+create policy "Read cash flows" on cash_flows for select to authenticated using (true);
+create policy "Manage cash flows" on cash_flows for all to authenticated 
   using (exists (select 1 from labor_profiles where id = auth.uid() and role in ('admin', 'supervisor')));
 
 -- Labor profiles: users can see all, but only admin can manage

@@ -12,6 +12,7 @@ import { LaborList } from './components/LaborList';
 import { PMList } from './components/PMList';
 import { AuthView } from './components/Auth';
 import { EntityFormModal } from './components/EntityFormModal';
+import { CSVImportExport } from './components/CSVImportExport';
 import { supabase, subscribeToTable, isSupabaseConfigured } from './lib/supabase';
 import { WorkOrder, Asset, LaborProfile, PMSchedule } from './types';
 import { Session } from '@supabase/supabase-js';
@@ -287,6 +288,81 @@ export default function App() {
     }
 
     fetchData();
+  };
+
+  const handleImportAssets = async (newAssets: any[]) => {
+    try {
+      const withIds = newAssets.map(item => ({
+        id: crypto.randomUUID(),
+        name: item.name,
+        category: item.category || 'other',
+        location: item.location,
+        status: item.status || 'operational',
+        technical_specs: item.technical_specs || {},
+        qr_code_data: item.qr_code_data || `HONICEL-${item.name.toUpperCase().replace(/\s+/g, '-')}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from('assets').insert(withIds);
+      if (error) throw error;
+      
+      const currentLocal = localStorage.getItem('honicel_assets') || '[]';
+      const parsed = JSON.parse(currentLocal);
+      localStorage.setItem('honicel_assets', JSON.stringify([...parsed, ...withIds]));
+
+      await fetchData();
+    } catch (err: any) {
+      console.warn("Database Bulk Asset Insert failing, triggering local transaction fallback:", err);
+      const currentList = [...assets];
+      const withIds = newAssets.map(item => ({
+        id: crypto.randomUUID(),
+        name: item.name,
+        category: item.category || 'other',
+        location: item.location,
+        status: item.status || 'operational',
+        technical_specs: item.technical_specs || {},
+        qr_code_data: item.qr_code_data || `HONICEL-${item.name.toUpperCase().replace(/\s+/g, '-')}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      const updated = [...currentList, ...withIds];
+      setAssets(updated);
+      localStorage.setItem('honicel_assets', JSON.stringify(updated));
+    }
+  };
+
+  const handleImportLabor = async (newLabor: any[]) => {
+    try {
+      const withIds = newLabor.map(item => ({
+        id: crypto.randomUUID(),
+        full_name: item.full_name,
+        specialization: item.specialization || 'general',
+        role: item.role || 'technician',
+        created_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from('labor_profiles').insert(withIds);
+      if (error) throw error;
+
+      const currentLocal = localStorage.getItem('honicel_labor') || '[]';
+      const parsed = JSON.parse(currentLocal);
+      localStorage.setItem('honicel_labor', JSON.stringify([...parsed, ...withIds]));
+
+      await fetchData();
+    } catch (err: any) {
+      console.warn("Database Bulk Labor Insert failing, triggering local transaction fallback:", err);
+      const currentList = [...labor];
+      const withIds = newLabor.map(item => ({
+        id: crypto.randomUUID(),
+        full_name: item.full_name,
+        specialization: item.specialization || 'general',
+        role: item.role || 'technician'
+      }));
+      const updated = [...currentList, ...withIds];
+      setLabor(updated);
+      localStorage.setItem('honicel_labor', JSON.stringify(updated));
+    }
   };
 
   const handleDelete = async (id: string, type: string) => {
@@ -876,19 +952,29 @@ export default function App() {
 
           {activeTab === 'assets' && (
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Asset Registry</h2>
                   <p className="text-sm text-slate-500 italic">Monitoring status of production machines</p>
                 </div>
-                {isSupervisor && (
-                  <button 
-                    onClick={() => openModal('asset')}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    <Plus size={16} /> NEW ASSET
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <CSVImportExport
+                    data={assets}
+                    fileName="honicel_assets"
+                    fields={['name', 'category', 'location', 'status']}
+                    humanHeaders={['Nama', 'Kategori', 'Lokasi', 'Status']}
+                    type="asset"
+                    onImport={handleImportAssets}
+                  />
+                  {isSupervisor && (
+                    <button 
+                      onClick={() => openModal('asset')}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                    >
+                      <Plus size={16} /> NEW ASSET
+                    </button>
+                  )}
+                </div>
               </div>
               <AssetList 
                 assets={assets} 
@@ -938,19 +1024,29 @@ export default function App() {
 
           {activeTab === 'labor' && (
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Maintenance Team</h2>
                   <p className="text-sm text-slate-500 italic">Management of technician profiles and specializations</p>
                 </div>
-                {userProfile?.role === 'admin' && (
-                  <button 
-                    onClick={() => openModal('labor')}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    <Plus size={16} /> NEW TECHNICIAN
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <CSVImportExport
+                    data={labor}
+                    fileName="honicel_labor_profiles"
+                    fields={['full_name', 'specialization', 'role']}
+                    humanHeaders={['Nama Lengkap', 'Spesialisasi', 'Peran Sistem']}
+                    type="labor"
+                    onImport={handleImportLabor}
+                  />
+                  {userProfile?.role === 'admin' && (
+                    <button 
+                      onClick={() => openModal('labor')}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                    >
+                      <Plus size={16} /> NEW TECHNICIAN
+                    </button>
+                  )}
+                </div>
               </div>
               <LaborList 
                 profiles={labor} 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sparepart, InstalledSparepart, Asset } from '../types';
+import { CSVImportExport } from './CSVImportExport';
 import { 
   Plus, 
   Search, 
@@ -83,6 +84,40 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
   useEffect(() => {
     fetchSparepartsData();
   }, []);
+
+  const handleImportSpareparts = async (newSp: any[]) => {
+    try {
+      const withIds = newSp.map(item => ({
+        id: crypto.randomUUID(),
+        name: item.name,
+        stock: item.stock,
+        price: item.price,
+        estimated_lifetime_hours: item.estimated_lifetime_hours,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from('spareparts').insert(withIds);
+      if (error) throw error;
+
+      await fetchSparepartsData();
+    } catch (err) {
+      console.warn("Database Bulk Sparepart insert failed, writing to LocalStorage cascade:", err);
+      const currentList = [...spareparts];
+      const withIds = newSp.map(item => ({
+        id: crypto.randomUUID(),
+        name: item.name,
+        stock: item.stock,
+        price: item.price,
+        estimated_lifetime_hours: item.estimated_lifetime_hours,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      const updated = [...currentList, ...withIds];
+      setSpareparts(updated);
+      localStorage.setItem('honicel_spareparts', JSON.stringify(updated));
+    }
+  };
 
   const handleOpenCreate = () => {
     setFormType('create');
@@ -269,10 +304,18 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
           <p className="text-sm text-slate-500 italic">Inventory, warehouse storage and asset lifetime estimation</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <CSVImportExport
+            data={spareparts}
+            fileName="honicel_spareparts"
+            fields={['name', 'stock', 'price', 'estimated_lifetime_hours']}
+            humanHeaders={['Nama Suku Cadang', 'Stok Warehouse', 'Harga Premium', 'Masa Pakai']}
+            type="sparepart"
+            onImport={handleImportSpareparts}
+          />
           <button 
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border border-blue-500"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border border-blue-500 shrink-0"
           >
             <Plus size={16} /> REGISTER NEW SPAREPART
           </button>

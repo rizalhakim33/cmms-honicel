@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { Asset, WorkOrder, LaborProfile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 type EntityType = 'asset' | 'work_order' | 'labor' | 'pm_schedule';
 
@@ -27,6 +28,30 @@ export const EntityFormModal: React.FC<Props> = ({
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Autocomplete suggestions states
+  const [dbSpareparts, setDbSpareparts] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      try {
+        const { data } = await supabase.from('spareparts').select('*').order('name');
+        if (data && data.length > 0) {
+          setDbSpareparts(data);
+        } else {
+          const local = localStorage.getItem('honicel_spareparts');
+          if (local) setDbSpareparts(JSON.parse(local));
+        }
+      } catch (err) {
+        const local = localStorage.getItem('honicel_spareparts');
+        if (local) setDbSpareparts(JSON.parse(local));
+      }
+    };
+    if (isOpen) {
+      fetchCatalog();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (entity) {
@@ -227,15 +252,50 @@ export const EntityFormModal: React.FC<Props> = ({
                     Suku Cadang / Spare Part Diganti (Opsional)
                   </span>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
+                    <div className="col-span-2 relative">
                       <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Nama Spare Part</label>
                       <input 
                         type="text"
                         value={formData.replaced_sparepart_name || ''}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
                         onChange={e => handleChange('replaced_sparepart_name', e.target.value)}
                         placeholder="e.g. Belt Conveyor, NSK Bearing"
                         className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-550"
                       />
+                      {showSuggestions && (formData.replaced_sparepart_name || '').trim() !== '' && (
+                        (() => {
+                          const queryText = (formData.replaced_sparepart_name || '').toLowerCase();
+                          const matches = dbSpareparts.filter(sp =>
+                            sp.name.toLowerCase().includes(queryText) &&
+                            sp.name.toLowerCase() !== queryText
+                          ).slice(0, 5);
+
+                          if (matches.length > 0) {
+                            return (
+                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                                {matches.map(sp => (
+                                  <button
+                                    key={sp.id}
+                                    type="button"
+                                    onClick={() => {
+                                      handleChange('replaced_sparepart_name', sp.name);
+                                      setShowSuggestions(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer font-medium"
+                                  >
+                                    <span className="font-bold text-slate-800">{sp.name}</span>
+                                    <span className="font-mono text-[9px] text-slate-400">
+                                      Stok: {sp.stock} | Rp {sp.price.toLocaleString('id-ID')}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
                     </div>
                     <div>
                       <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Jumlah</label>

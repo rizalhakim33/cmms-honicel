@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CashFlow } from '../types';
+import { CSVImportExport } from './CSVImportExport';
 import { 
   Plus, 
   TrendingDown, 
@@ -57,6 +58,40 @@ export const CashFlowManager: React.FC = () => {
   useEffect(() => {
     fetchCashFlows();
   }, []);
+
+  const handleImportCashFlow = async (newCf: any[]) => {
+    try {
+      const withIds = newCf.map(item => ({
+        id: crypto.randomUUID(),
+        type: item.type,
+        title: item.title,
+        amount: item.amount,
+        date: item.date,
+        reference_id: null,
+        created_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from('cash_flows').insert(withIds);
+      if (error) throw error;
+
+      await fetchCashFlows();
+    } catch (err) {
+      console.warn("Database Bulk Cash insertion failing, rolling back to client storage cache:", err);
+      const currentList = [...cashFlows];
+      const withIds = newCf.map(item => ({
+        id: crypto.randomUUID(),
+        type: item.type,
+        title: item.title,
+        amount: item.amount,
+        date: item.date,
+        reference_id: null,
+        created_at: new Date().toISOString()
+      }));
+      const updated = [...withIds, ...currentList];
+      setCashFlows(updated);
+      localStorage.setItem('honicel_cashflows', JSON.stringify(updated));
+    }
+  };
 
   const handleCreateCashFlow = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,12 +259,22 @@ export const CashFlowManager: React.FC = () => {
           <p className="text-sm text-slate-500 italic">Financial tracking of machine replacement costs and contractor log</p>
         </div>
 
-        <button 
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-slate-900 border border-slate-950 text-white hover:bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
-        >
-          <Plus size={16} /> ADD INTERNAL/OPERATIONAL COST
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <CSVImportExport
+            data={cashFlows}
+            fileName="honicel_cash_flows"
+            fields={['type', 'title', 'amount', 'date']}
+            humanHeaders={['Tipe Transaksi', 'Keterangan Pengeluaran', 'Biaya Nominal', 'Tanggal Transaksi']}
+            type="cash_flow"
+            onImport={handleImportCashFlow}
+          />
+          <button 
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center gap-2 bg-slate-100 border border-slate-200 text-slate-705 hover:bg-slate-200 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
+          >
+            <Plus size={16} /> ADD INTERNAL/OPERATIONAL COST
+          </button>
+        </div>
       </div>
 
       {/* Mini Grid Stats */}
