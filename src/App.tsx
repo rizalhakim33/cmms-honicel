@@ -399,6 +399,87 @@ export default function App() {
     new Date(wo.completed_at).toDateString() === new Date().toDateString()
   ).length;
 
+  // --- START DYNAMIC DASHBOARD METRICS ---
+  // 1. Mean Time To Repair (MTTR) calculation based on actual completed Work Orders
+  const completedWOs = workOrders.filter(wo => wo.status === 'completed');
+  let dynamicMTTR = 4.2; // default standard reference if none exist yet
+  let mttrTrendValue = "0%";
+  let mttrTrendUp = true;
+  
+  if (completedWOs.length > 0) {
+    const totalHours = completedWOs.reduce((acc, wo) => {
+      const start = new Date(wo.started_at || wo.created_at).getTime();
+      const end = new Date(wo.completed_at || wo.updated_at).getTime();
+      const diffHrs = Math.max(0.1, (end - start) / (1000 * 60 * 60)); // at least 0.1 hr
+      return acc + diffHrs;
+    }, 0);
+    dynamicMTTR = parseFloat((totalHours / completedWOs.length).toFixed(1));
+    
+    // Compare trend: check WOs completed in last 7 days vs previous
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentWOs = completedWOs.filter(wo => new Date(wo.completed_at || wo.updated_at) >= sevenDaysAgo);
+    const olderWOs = completedWOs.filter(wo => new Date(wo.completed_at || wo.updated_at) < sevenDaysAgo);
+    
+    if (recentWOs.length > 0 && olderWOs.length > 0) {
+      const recentAvg = recentWOs.reduce((acc, wo) => acc + Math.max(0.1, (new Date(wo.completed_at || wo.updated_at).getTime() - new Date(wo.started_at || wo.created_at).getTime()) / (1000 * 60 * 60)), 0) / recentWOs.length;
+      const olderAvg = olderWOs.reduce((acc, wo) => acc + Math.max(0.1, (new Date(wo.completed_at || wo.updated_at).getTime() - new Date(wo.started_at || wo.created_at).getTime()) / (1000 * 60 * 60)), 0) / olderWOs.length;
+      
+      const pctDiff = ((recentAvg - olderAvg) / olderAvg) * 100;
+      mttrTrendValue = `${Math.abs(Math.round(pctDiff))}%`;
+      mttrTrendUp = pctDiff < 0; // Negative difference in MTTR is positive/good (speed got faster)!
+    } else {
+      mttrTrendValue = `${completedWOs.length} total`;
+      mttrTrendUp = true;
+    }
+  }
+
+  // 2. Mean Time Between Failures (MTBF)
+  // Number of failures = high or urgent priority work orders (representing breakdowns)
+  const highUrgentWOs = workOrders.filter(wo => wo.priority === 'high' || wo.priority === 'urgent');
+  const failureCount = highUrgentWOs.length;
+  
+  // Assume a standard 30-day operating interval (720 hours) for monitored machinery
+  const runningAssetCount = assets.filter(a => a.status === 'operational').length;
+  const totalMonitoredHours = (runningAssetCount || assets.length || 1) * 30 * 24;
+  
+  let dynamicMTBF = 128; // default standard if none
+  let mtbfTrendValue = "Standard";
+  let mtbfTrendUp = true;
+  
+  if (assets.length > 0) {
+    if (failureCount > 0) {
+      dynamicMTBF = Math.max(1, Math.round(totalMonitoredHours / failureCount));
+      mtbfTrendValue = `${failureCount} issues`;
+      mtbfTrendUp = false; // More failures mean MTBF decreases (bad)
+    } else {
+      dynamicMTBF = totalMonitoredHours;
+      mtbfTrendValue = "0 breakdowns";
+      mtbfTrendUp = true; // Perfect reliability
+    }
+  }
+
+  // 3. Asset Heath Breakdown
+  const operationalAssets = assets.filter(a => a.status === 'operational').length;
+  const maintenanceAssets = assets.filter(a => a.status === 'under_maintenance').length;
+  const downAssets = assets.filter(a => a.status === 'down').length;
+
+  // 4. Work Order Statuses Breakdown
+  const openWOs = workOrders.filter(wo => wo.status === 'open').length;
+  const inProgressWOs = workOrders.filter(wo => wo.status === 'in_progress').length;
+  const pendingWOs = workOrders.filter(wo => wo.status === 'pending').length;
+  const completedWOsCount = workOrders.filter(wo => wo.status === 'completed').length;
+
+  // 5. PM Metrics Breakdown
+  const totalPMCount = pms.length;
+  const upcomingPMCount = pms.filter(pm => {
+    const due = new Date(pm.next_due_at).getTime();
+    const now = Date.now();
+    return due > now && due <= now + (14 * 24 * 60 * 60 * 1000); // within next 14 days
+  }).length;
+  const overduePMCount = pms.filter(pm => new Date(pm.next_due_at).getTime() < Date.now()).length;
+  // --- END DYNAMIC DASHBOARD METRICS ---
+
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
@@ -492,24 +573,25 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard 
                   label="Mean Time To Repair (MTTR)" 
-                  value="4.2" 
+                  value={dynamicMTTR} 
                   unit="hours"
                   icon={Clock} 
-                  trend={{ value: '12%', isUp: true }}
+                  trend={{ value: mttrTrendValue, isUp: mttrTrendUp }}
+                  colorClass="text-blue-500"
                 />
                 <KPICard 
                   label="Active Work Orders" 
                   value={activeWOs} 
                   icon={Activity} 
-                  colorClass="text-rose-500"
+                  colorClass="text-amber-500"
                 />
                 <KPICard 
-                  label="Mean Time Between Failures" 
-                  value="128" 
+                  label="Mean Time Between Failures (MTBF)" 
+                  value={dynamicMTBF} 
                   unit="hours"
                   icon={Activity} 
-                  trend={{ value: '4%', isUp: false }}
-                  colorClass="text-amber-500"
+                  trend={{ value: mtbfTrendValue, isUp: mtbfTrendUp }}
+                  colorClass="text-rose-500"
                 />
                 <KPICard 
                   label="Total Assets" 
@@ -517,6 +599,155 @@ export default function App() {
                   icon={CheckCircle2} 
                   colorClass="text-emerald-500"
                 />
+              </div>
+
+              {/* Fleet, Schedule & Backlog Summary Status */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* 1. Asset Fleet Health */}
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Asset Fleet Availability</h3>
+                    <div className="space-y-4">
+                      {/* Operational */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Operational
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{operationalAssets} / {assets.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${assets.length > 0 ? (operationalAssets/assets.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Under Maintenance */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" /> Under Maintenance
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{maintenanceAssets} / {assets.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${assets.length > 0 ? (maintenanceAssets/assets.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Down */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-550 animate-pulse" /> Down / Broken
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{downAssets} / {assets.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${assets.length > 0 ? (downAssets/assets.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-slate-100 leading-relaxed italic">
+                    Health ratio: {assets.length > 0 ? Math.round((operationalAssets/assets.length)*100) : 0}% of machines are functioning normally.
+                  </p>
+                </div>
+
+                {/* 2. Tasks Backlog Distribution */}
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Work Order Backlog</h3>
+                    <div className="space-y-4">
+                      {/* Completed */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> Completed
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{completedWOsCount} / {workOrders.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${workOrders.length > 0 ? (completedWOsCount/workOrders.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* In Progress */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" /> In Progress
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{inProgressWOs} / {workOrders.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full rounded-full" style={{ width: `${workOrders.length > 0 ? (inProgressWOs/workOrders.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Open / Pending */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-slate-400" /> Open & Pending
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{(openWOs + pendingWOs)} / {workOrders.length}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-slate-400 h-full rounded-full" style={{ width: `${workOrders.length > 0 ? ((openWOs+pendingWOs)/workOrders.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-slate-100 leading-relaxed italic">
+                    Backlog ratio: {workOrders.length > 0 ? Math.round(((openWOs+pendingWOs+inProgressWOs)/workOrders.length)*100) : 0}% active tasks unresolved.
+                  </p>
+                </div>
+
+                {/* 3. PM Schedules Tracking */}
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">PM Schedule Compliance</h3>
+                    <div className="space-y-4">
+                      {/* Total routine schedules */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600">Active Routines Registered</span>
+                          <span className="font-mono text-indigo-600 font-bold">{totalPMCount} schedules</span>
+                        </div>
+                        <div className="w-full bg-indigo-50 h-1.5 rounded-full" />
+                      </div>
+
+                      {/* Due soon (14 days) */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" /> Due Within 14 Days
+                          </span>
+                          <span className="font-mono font-bold text-slate-800">{upcomingPMCount} schedules</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${totalPMCount > 0 ? (upcomingPMCount/totalPMCount)*100 : 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Overdue */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="font-semibold text-slate-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-550 animate-pulse" /> Overdue Routines
+                          </span>
+                          <span className="font-mono text-rose-600 font-bold">{overduePMCount} schedules</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-rose-500 h-full rounded-full" style={{ width: `${totalPMCount > 0 ? (overduePMCount/totalPMCount)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-slate-100 leading-relaxed italic">
+                    Overdue ratio: {totalPMCount > 0 ? Math.round((overduePMCount/totalPMCount)*100) : 0}% schedules require prompt inspection.
+                  </p>
+                </div>
               </div>
 
               {/* Main Table Row */}
@@ -549,10 +780,21 @@ export default function App() {
                     </div>
                   ) : (
                     <WorkOrderTable 
-                      workOrders={workOrders.filter(wo => 
-                        wo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        wo.asset?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-                      )} 
+                      workOrders={workOrders
+                        .filter(wo => 
+                          wo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          wo.asset?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .sort((a, b) => {
+                          if (a.status === 'completed' && b.status !== 'completed') return 1;
+                          if (a.status !== 'completed' && b.status === 'completed') return -1;
+                          
+                          const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 };
+                          const aWeight = priorityWeight[a.priority] || 0;
+                          const bWeight = priorityWeight[b.priority] || 0;
+                          return bWeight - aWeight;
+                        })
+                      } 
                       onEdit={(wo) => openModal('work_order', wo)}
                       onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
                     />
