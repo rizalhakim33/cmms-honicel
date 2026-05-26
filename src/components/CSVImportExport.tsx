@@ -184,19 +184,22 @@ export const CSVImportExport: React.FC<Props> = ({
           else if (type === 'sparepart') {
             if (!record.name) throw new Error(`Baris ke-${rowNum}: Nama Sparepart tidak boleh kosong!`);
             
-            const stockNum = parseInt(record.stock);
+            const stockStr = (record.stock || '0').toString().replace(/[^0-9]/g, '');
+            const stockNum = parseInt(stockStr || '0');
             if (isNaN(stockNum) || stockNum < 0) {
               throw new Error(`Baris ke-${rowNum}: Jumlah stok "${record.stock}" harus berupa angka bulat >= 0 (CHECK stock >= 0)!`);
             }
             record.stock = stockNum;
 
-            const priceNum = parseInt(record.price);
+            const priceStr = (record.price || '0').toString().replace(/[^0-9]/g, '');
+            const priceNum = parseInt(priceStr || '0');
             if (isNaN(priceNum) || priceNum < 0) {
                throw new Error(`Baris ke-${rowNum}: Harga "${record.price}" harus berupa angka riil >= 0!`);
             }
             record.price = priceNum;
 
-            const lifetimeNum = parseInt(record.estimated_lifetime_hours);
+            const lifetimeStr = (record.estimated_lifetime_hours || '2000').toString().replace(/[^0-9]/g, '');
+            const lifetimeNum = parseInt(lifetimeStr || '2000');
             if (isNaN(lifetimeNum) || lifetimeNum <= 0) {
               throw new Error(`Baris ke-${rowNum}: Estimasi lifetime "${record.estimated_lifetime_hours}" harus berupa angka bulat > 0!`);
             }

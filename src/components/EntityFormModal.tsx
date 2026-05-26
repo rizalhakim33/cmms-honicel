@@ -40,12 +40,10 @@ export const EntityFormModal: React.FC<Props> = ({
         if (data && data.length > 0) {
           setDbSpareparts(data);
         } else {
-          const local = localStorage.getItem('honicel_spareparts');
-          if (local) setDbSpareparts(JSON.parse(local));
+          setDbSpareparts([]); // Empty it
         }
       } catch (err) {
-        const local = localStorage.getItem('honicel_spareparts');
-        if (local) setDbSpareparts(JSON.parse(local));
+        console.error("Failed to load spareparts catalog:", err);
       }
     };
     if (isOpen) {

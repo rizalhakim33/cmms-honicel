@@ -72,24 +72,14 @@ export const CashFlowManager: React.FC = () => {
       }));
 
       const { error } = await supabase.from('cash_flows').insert(withIds);
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || "Gagal memasukkan data massal ke database.");
+      }
 
       await fetchCashFlows();
-    } catch (err) {
-      console.warn("Database Bulk Cash insertion failing, rolling back to client storage cache:", err);
-      const currentList = [...cashFlows];
-      const withIds = newCf.map(item => ({
-        id: crypto.randomUUID(),
-        type: item.type,
-        title: item.title,
-        amount: item.amount,
-        date: item.date,
-        reference_id: null,
-        created_at: new Date().toISOString()
-      }));
-      const updated = [...withIds, ...currentList];
-      setCashFlows(updated);
-      localStorage.setItem('honicel_cashflows', JSON.stringify(updated));
+    } catch (err: any) {
+      console.error("Database Bulk Cash flow insertion failing:", err);
+      throw err;
     }
   };
 

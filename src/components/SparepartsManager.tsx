@@ -98,24 +98,14 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
       }));
 
       const { error } = await supabase.from('spareparts').insert(withIds);
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || "Gagal memasukkan data massal ke database.");
+      }
 
       await fetchSparepartsData();
-    } catch (err) {
-      console.warn("Database Bulk Sparepart insert failed, writing to LocalStorage cascade:", err);
-      const currentList = [...spareparts];
-      const withIds = newSp.map(item => ({
-        id: crypto.randomUUID(),
-        name: item.name,
-        stock: item.stock,
-        price: item.price,
-        estimated_lifetime_hours: item.estimated_lifetime_hours,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-      const updated = [...currentList, ...withIds];
-      setSpareparts(updated);
-      localStorage.setItem('honicel_spareparts', JSON.stringify(updated));
+    } catch (err: any) {
+      console.error("Database Bulk Sparepart insert failed:", err);
+      throw err;
     }
   };
 

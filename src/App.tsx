@@ -305,30 +305,14 @@ export default function App() {
       }));
 
       const { error } = await supabase.from('assets').insert(withIds);
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || "Gagal mengimpor Aset ke database");
+      }
       
-      const currentLocal = localStorage.getItem('honicel_assets') || '[]';
-      const parsed = JSON.parse(currentLocal);
-      localStorage.setItem('honicel_assets', JSON.stringify([...parsed, ...withIds]));
-
       await fetchData();
     } catch (err: any) {
-      console.warn("Database Bulk Asset Insert failing, triggering local transaction fallback:", err);
-      const currentList = [...assets];
-      const withIds = newAssets.map(item => ({
-        id: crypto.randomUUID(),
-        name: item.name,
-        category: item.category || 'other',
-        location: item.location,
-        status: item.status || 'operational',
-        technical_specs: item.technical_specs || {},
-        qr_code_data: item.qr_code_data || `HONICEL-${item.name.toUpperCase().replace(/\s+/g, '-')}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-      const updated = [...currentList, ...withIds];
-      setAssets(updated);
-      localStorage.setItem('honicel_assets', JSON.stringify(updated));
+      console.error("Database Bulk Asset Insert failing:", err);
+      throw err;
     }
   };
 
@@ -343,25 +327,14 @@ export default function App() {
       }));
 
       const { error } = await supabase.from('labor_profiles').insert(withIds);
-      if (error) throw error;
-
-      const currentLocal = localStorage.getItem('honicel_labor') || '[]';
-      const parsed = JSON.parse(currentLocal);
-      localStorage.setItem('honicel_labor', JSON.stringify([...parsed, ...withIds]));
+      if (error) {
+        throw new Error(error.message || "Gagal mengimpor Profil Teknisi ke database");
+      }
 
       await fetchData();
     } catch (err: any) {
-      console.warn("Database Bulk Labor Insert failing, triggering local transaction fallback:", err);
-      const currentList = [...labor];
-      const withIds = newLabor.map(item => ({
-        id: crypto.randomUUID(),
-        full_name: item.full_name,
-        specialization: item.specialization || 'general',
-        role: item.role || 'technician'
-      }));
-      const updated = [...currentList, ...withIds];
-      setLabor(updated);
-      localStorage.setItem('honicel_labor', JSON.stringify(updated));
+      console.error("Database Bulk Labor Insert failing:", err);
+      throw err;
     }
   };
 
