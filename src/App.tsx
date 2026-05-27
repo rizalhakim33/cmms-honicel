@@ -366,11 +366,26 @@ export default function App() {
 
   const handleDelete = async (id: string, type: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+    
+    // Attempt extra auth cleanup if labor
+    if (type === 'labor') {
+      try {
+        await supabaseAdminAuth.auth.admin.deleteUser(id);
+      } catch (err) {
+        // Ignored, might fail due to lack of service_role key, we just fallback to profile deletion
+      }
+    }
+
     const table = type === 'asset' ? 'assets' : 
                   type === 'work_order' ? 'work_orders' : 
                   type === 'labor' ? 'labor_profiles' : 'pm_schedules';
+                  
     const { error } = await supabase.from(table).delete().eq('id', id);
-    if (error) alert(error.message);
+    if (error) {
+      alert(`Gagal menghapus: ${error.message}`);
+      console.error(error);
+    }
+    
     fetchData();
   };
 
