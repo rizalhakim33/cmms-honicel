@@ -315,6 +315,31 @@ export const EntityFormModal: React.FC<Props> = ({
 
             {type === 'labor' && (
               <>
+                {!entity && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Username (Login)</label>
+                      <input 
+                        required
+                        value={formData.username || ''}
+                        onChange={e => handleChange('username', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                        placeholder="jdoe"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Password</label>
+                      <input 
+                        type="password"
+                        required
+                        value={formData.password || ''}
+                        onChange={e => handleChange('password', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Full Name</label>
                   <input 

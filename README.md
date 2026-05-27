@@ -5,8 +5,9 @@ Selamat datang di Honicel CMMS (Computerized Maintenance Management System). Apl
 ## 1. Cara Login
 1. Buka aplikasi Honicel CMMS.
 2. Pada halaman awal, Anda akan melihat form login / autentikasi.
-3. Masukkan **Email** dan **Password** Anda. (Jika Anda menggunakan versi preview, Anda mungkin bisa masuk menggunakan email dummy untuk keperluan testing/development sesuai dengan konfigurasi).
-4. Setelah berhasil login, profil Anda akan dimuat. Jika Anda login pertama kali, sistem mungkin akan otomatis mengatur profil Anda (hubungi administrator untuk mengatur peran: Admin, Supervisor, atau Technician).
+3. Masukkan **Username (ID)** dan **Password** Anda. (Hanya admin sistem yang dapat mendaftarkan akun baru).
+
+> **Catatan Admin:** Pembuatan user teknisi baru sekarang sepenuhnya dipegang oleh peran **Admin**. Admin dapat menuju halaman **Labor**, lalu menekan **NEW TECHNICIAN** untuk membuat identitas login (*Username & Password*) untuk anggota baru. Anggota baru tidak perlu sign up sendiri.
 
 ## 2. Navigasi Halaman Utama (Dashboard)
 Setelah login, Anda akan diarahkan ke **Dashboard**. Di halaman ini Anda dapat:

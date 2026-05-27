@@ -13,7 +13,7 @@ import { PMList } from './components/PMList';
 import { AuthView } from './components/Auth';
 import { EntityFormModal } from './components/EntityFormModal';
 import { CSVImportExport } from './components/CSVImportExport';
-import { supabase, subscribeToTable, isSupabaseConfigured } from './lib/supabase';
+import { supabase, subscribeToTable, isSupabaseConfigured, supabaseAdminAuth } from './lib/supabase';
 import { WorkOrder, Asset, LaborProfile, PMSchedule } from './types';
 import { Session } from '@supabase/supabase-js';
 import { 
@@ -169,7 +169,32 @@ export default function App() {
     delete payload.asset;
     delete payload.assignee;
     
-    if (data.id) {
+    if (modalType === 'labor') {
+      if (!data.id) {
+        if (!payload.username || !payload.password) {
+          throw new Error("Username and Password are required for new technicians");
+        }
+        const email = `${payload.username.toLowerCase().replace(/\s+/g, '')}@honicel.local`;
+        
+        // Use supabaseAdminAuth exported from src/lib/supabase
+        const { data: authData, error: signupError } = await supabaseAdminAuth.auth.signUp({
+          email,
+          password: payload.password
+        });
+        
+        if (signupError) throw signupError;
+        
+        payload.id = authData.user?.id;
+        delete payload.username;
+        delete payload.password;
+        
+        res = await supabase.from(table).insert([payload]);
+      } else {
+        delete payload.username;
+        delete payload.password;
+        res = await supabase.from(table).update(payload).eq('id', data.id);
+      }
+    } else if (data.id) {
       res = await supabase.from(table).update(payload).eq('id', data.id);
     } else {
       res = await supabase.from(table).insert([payload]);

@@ -25,3 +25,9 @@ export const subscribeToTable = (table: string, callback: (payload: any) => void
     )
     .subscribe();
 };
+
+export const supabaseAdminAuth = createClient(
+  supabaseUrl || 'https://placeholder-project.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
