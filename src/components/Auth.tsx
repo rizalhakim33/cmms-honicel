@@ -15,9 +15,9 @@ export const AuthView: React.FC = () => {
     setError(null);
 
     try {
-      const email = `${username.toLowerCase().replace(/\s+/g, '')}@honicel.local`;
+      const loginEmail = username.includes('@') ? username : `${username.toLowerCase().replace(/\s+/g, '')}@honicel.local`;
       const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 
@@ -60,14 +60,14 @@ export const AuthView: React.FC = () => {
 
           <form onSubmit={handleAuth} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Username</label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Username / Email</label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold bg-slate-200 text-[10px] px-1.5 py-0.5 rounded uppercase">ID</div>
                 <input 
                   type="text" 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  placeholder="admin atau email@honicel.com"
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
                   required
                 />

@@ -31,6 +31,7 @@ import {
 import { exportWorkOrdersToPDF } from './lib/pdfExport';
 import { SparepartsManager } from './components/SparepartsManager';
 import { CashFlowManager } from './components/CashFlowManager';
+import { SettingsTab } from './components/Settings';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -1055,9 +1056,8 @@ export default function App() {
           )}
 
           {activeTab === 'settings' && (
-            <div className="max-w-7xl mx-auto h-full flex items-center justify-center flex-col gap-4 text-slate-300">
-               <RefreshCw className="w-12 h-12 opacity-10 animate-spin-slow" />
-               <p className="text-sm italic">System settings and permissions are managed by facility admin.</p>
+            <div className="max-w-7xl mx-auto h-full p-4 md:p-6 lg:p-8">
+               <SettingsTab userProfile={userProfile} session={session} onRefreshData={fetchData} />
             </div>
           )}
         </div>

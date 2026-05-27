@@ -19,6 +19,7 @@ create table if not exists labor_profiles (
   full_name text not null,
   specialization text,
   role text default 'technician',
+  deletion_requested boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
