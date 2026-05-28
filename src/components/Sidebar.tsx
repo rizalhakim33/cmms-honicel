@@ -36,7 +36,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, onClose, userRole }) => {
   const filteredNavItems = navItems.filter(item => {
     if (userRole === 'technician') {
-      return !['labor', 'settings'].includes(item.id);
+      return !['labor'].includes(item.id);
     }
     return true;
   });
