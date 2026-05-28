@@ -135,6 +135,24 @@ export const SettingsTab: React.FC<SettingsProps> = ({ userProfile, session, onR
         </div>
       </div>
 
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-600 flex flex-col items-center justify-center font-bold text-xl uppercase shrink-0">
+          {userProfile?.full_name?.charAt(0) || 'U'}
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">{userProfile?.full_name}</h2>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <div className="flex items-center gap-1.5 text-sm font-mono text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:inline">Username:</span>
+              {session.user.email?.split('@')[0]}
+            </div>
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-blue-100">
+              Role: {userProfile?.role}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2">
           <AlertTriangle size={18} />
