@@ -412,6 +412,29 @@ export default function App() {
       }
     }
 
+    if (type === 'work_order') {
+      try {
+        // Delete related installed spareparts
+        await supabase.from('installed_spareparts').delete().eq('work_order_id', id);
+        // Delete related cash flows
+        await supabase.from('cash_flows').delete().eq('reference_id', id);
+
+        // Fallback cleanup
+        const localInst = localStorage.getItem('honicel_installed_spareparts');
+        if (localInst) {
+          const fallbackInst = JSON.parse(localInst).filter((ip: any) => ip.work_order_id !== id);
+          localStorage.setItem('honicel_installed_spareparts', JSON.stringify(fallbackInst));
+        }
+        const localCash = localStorage.getItem('honicel_cashflows');
+        if (localCash) {
+          const fallbackCash = JSON.parse(localCash).filter((cf: any) => cf.reference_id !== id);
+          localStorage.setItem('honicel_cashflows', JSON.stringify(fallbackCash));
+        }
+      } catch (err) {
+        console.warn("Failed to delete related items", err);
+      }
+    }
+
     const table = type === 'asset' ? 'assets' : 
                   type === 'work_order' ? 'work_orders' : 
                   type === 'labor' ? 'labor_profiles' : 'pm_schedules';
