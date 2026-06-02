@@ -236,6 +236,30 @@ export default function App() {
             }]);
         }
 
+        const targetAsset = assets.find(a => a.id === payload.asset_id);
+        const assetName = targetAsset ? targetAsset.name : 'Mesin';
+
+        // Find existing installed part to calculate real lifetime before inserting new one
+        const { data: existingInstalled } = await supabase
+          .from('installed_spareparts')
+          .select('*')
+          .eq('asset_id', payload.asset_id)
+          .ilike('sparepart_name', spName)
+          .order('installed_at', { ascending: false })
+          .limit(1);
+
+        if (existingInstalled && existingInstalled.length > 0) {
+          const oldPart = existingInstalled[0];
+          const msDiff = new Date().getTime() - new Date(oldPart.installed_at).getTime();
+          const elapsedDays = msDiff / (1000 * 60 * 60 * 24);
+          const hoursDiff = Math.max(0, Math.round(elapsedDays * 12)); // Assume 12 operating hours per day
+          
+          await supabase
+            .from('installed_spareparts')
+            .update({ estimated_lifetime_hours: hoursDiff })
+            .eq('id', oldPart.id);
+        }
+
         await supabase
           .from('installed_spareparts')
           .insert([{
@@ -247,8 +271,6 @@ export default function App() {
             estimated_lifetime_hours: estLifetime
           }]);
 
-        const targetAsset = assets.find(a => a.id === payload.asset_id);
-        const assetName = targetAsset ? targetAsset.name : 'Mesin';
         await supabase
           .from('cash_flows')
           .insert([{
@@ -287,6 +309,20 @@ export default function App() {
 
         const localInst = localStorage.getItem('honicel_installed_spareparts');
         const fallbackInst = localInst ? JSON.parse(localInst) : [];
+
+        // Calculate real lifetime for existing fallback
+        const existingLocalIp = fallbackInst
+          .filter((ip: any) => ip.asset_id === payload.asset_id && ip.sparepart_name.toLowerCase() === payload.replaced_sparepart_name.trim().toLowerCase())
+          .sort((a: any, b: any) => new Date(b.installed_at).getTime() - new Date(a.installed_at).getTime());
+        
+        if (existingLocalIp && existingLocalIp.length > 0) {
+          const oldLocalPart = existingLocalIp[0];
+          const msDiff = new Date().getTime() - new Date(oldLocalPart.installed_at).getTime();
+          const elapsedDays = msDiff / (1000 * 60 * 60 * 24);
+          const hoursDiff = Math.max(0, Math.round(elapsedDays * 12));
+          oldLocalPart.estimated_lifetime_hours = hoursDiff;
+        }
+
         fallbackInst.push({
           id: crypto.randomUUID(),
           asset_id: payload.asset_id,

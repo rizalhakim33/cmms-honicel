@@ -269,10 +269,30 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
     sp.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredInstalled = installedParts.filter(ip => 
+  const processedInstalled = installedParts.filter(ip => 
     ip.sparepart_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (ip.asset?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).map(ip => {
+    // Check if there's a newer installation of the same part on the same machine
+    const isHistorical = installedParts.some(other => 
+      other.asset_id === ip.asset_id &&
+      other.sparepart_name.trim().toLowerCase() === ip.sparepart_name.trim().toLowerCase() &&
+      new Date(other.installed_at).getTime() > new Date(ip.installed_at).getTime()
+    );
+
+    let stats;
+    if (isHistorical) {
+      stats = {
+        accumulated: ip.estimated_lifetime_hours,
+        remaining: 0,
+        health: 0 // Replaced, 0% health left
+      };
+    } else {
+      stats = calculateLifetimeHealth(ip.installed_at, ip.estimated_lifetime_hours);
+    }
+
+    return { ...ip, isHistorical, ...stats };
+  });
 
   // Formatter helper
   const formatRupiah = (val: number) => {
@@ -433,7 +453,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
         ) : (
           /* Lifetime Tracking */
           <div className="p-6">
-            {filteredInstalled.length === 0 ? (
+            {processedInstalled.length === 0 ? (
               <div className="text-center p-12 text-slate-400">
                 <Wrench className="mx-auto w-10 h-10 text-slate-300 mb-2" />
                 <p className="text-sm font-semibold">Belum Ada Sparepart Terpasang</p>
@@ -441,33 +461,39 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredInstalled.map((ip) => {
-                  const { accumulated, remaining, health } = calculateLifetimeHealth(ip.installed_at, ip.estimated_lifetime_hours);
+                {processedInstalled.map((ip) => {
+                  const { accumulated, remaining, health, isHistorical } = ip as any;
                   return (
                     <div 
                       key={ip.id} 
-                      className="border border-slate-200 bg-slate-50/50 p-5 rounded-xl flex flex-col justify-between hover:shadow-md transition-all h-full"
+                      className={`border p-5 rounded-xl flex flex-col justify-between hover:shadow-md transition-all h-full ${isHistorical ? 'border-slate-100 bg-slate-50/30 grayscale-[0.5] opacity-80' : 'border-slate-200 bg-slate-50/50'}`}
                     >
                       <div>
                         {/* Title and Badge */}
                         <div className="flex justify-between items-start gap-4 mb-3">
                           <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-                              Installed Part
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isHistorical ? 'text-slate-500 bg-slate-100' : 'text-blue-500 bg-blue-50'}`}>
+                              {isHistorical ? 'Replaced Part' : 'Installed Part'}
                             </span>
                             <h3 className="text-base font-bold text-slate-800 mt-1">{ip.sparepart_name}</h3>
                           </div>
                           
                           <div className="text-right">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                              health >= 75 
-                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                                : health >= 35 
-                                ? 'bg-amber-50 text-amber-600 border-amber-200' 
-                                : 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
-                            }`}>
-                              {health}% Healthy
-                            </span>
+                            {isHistorical ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-500 border-slate-200">
+                                History (Replaced)
+                              </span>
+                            ) : (
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                health >= 75 
+                                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                                  : health >= 35 
+                                  ? 'bg-amber-50 text-amber-600 border-amber-200' 
+                                  : 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
+                              }`}>
+                                {health}% Healthy
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -486,27 +512,27 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
                         {/* Bar */}
                         <div className="space-y-1 text-xs mb-3">
                           <div className="flex justify-between items-center text-[11px] font-medium">
-                            <span className="text-slate-400">Lifetime Hours: {ip.estimated_lifetime_hours} hrs</span>
+                            <span className="text-slate-400">{isHistorical ? 'Real Lifetime Hours' : 'Lifetime Hours'}: {ip.estimated_lifetime_hours} hrs</span>
                             <span className="font-mono text-slate-700">{accumulated} hrs used</span>
                           </div>
-                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className={`w-full bg-slate-200 h-2 rounded-full overflow-hidden ${isHistorical ? 'opacity-50' : ''}`}>
                             <div 
                               className={`h-full rounded-full transition-all duration-500 ${
-                                health >= 75 ? 'bg-emerald-500' : health >= 35 ? 'bg-amber-500' : 'bg-rose-500'
+                                isHistorical ? 'bg-slate-400' : health >= 75 ? 'bg-emerald-500' : health >= 35 ? 'bg-amber-500' : 'bg-rose-500'
                               }`}
-                              style={{ width: `${health}%` }}
+                              style={{ width: isHistorical ? '100%' : `${health}%` }}
                             />
                           </div>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
-                        <span className="text-slate-400">Estimated remaining life:</span>
+                        <span className="text-slate-400">{isHistorical ? 'Status:' : 'Estimated remaining life:'}</span>
                         <span className={`font-bold flex items-center gap-1 ${
-                          health < 35 ? 'text-rose-600' : 'text-slate-700'
+                          isHistorical ? 'text-slate-500' : health < 35 ? 'text-rose-600' : 'text-slate-700'
                         }`}>
-                          {health < 35 && <AlertTriangle size={12} />}
-                          {remaining} hours
+                          {!isHistorical && health < 35 && <AlertTriangle size={12} />}
+                          {isHistorical ? 'Replaced' : `${remaining} hours`}
                         </span>
                       </div>
                     </div>
