@@ -20,9 +20,69 @@ interface Props {
   workOrders: WorkOrder[];
   onEdit?: (wo: WorkOrder) => void;
   onDelete?: (id: string) => void;
+  viewMode?: 'grid' | 'list';
 }
 
-export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete }) => {
+export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, viewMode = 'list' }) => {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
+        {workOrders.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+            No active work orders found.
+          </div>
+        ) : (
+          workOrders.map((wo) => (
+            <div key={wo.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
+              <div className="flex justify-between items-start mb-4">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                  ${wo.status === 'open' ? 'text-blue-700 bg-blue-50' : ''}
+                  ${wo.status === 'in_progress' ? 'text-amber-700 bg-amber-50' : ''}
+                  ${wo.status === 'completed' ? 'text-emerald-700 bg-emerald-50' : ''}
+                `}>
+                  {statusIcons[wo.status]}
+                  {wo.status.replace('_', ' ')}
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColors[wo.priority]}`}>
+                  {wo.priority}
+                </span>
+              </div>
+              <div className="mb-4 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors">{wo.title}</h3>
+                  {wo.pm_id && (
+                    <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">
+                      PM
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] font-mono text-slate-400">#{wo.id.slice(0, 8)}</p>
+                
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <span className="font-bold w-16">Asset:</span> 
+                    <span className="truncate">{wo.asset?.name || 'Unassigned'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <span className="font-bold w-16">Assignee:</span>
+                    <span className="truncate">{wo.assignee?.full_name || 'TBA'}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                 <span className="text-[10px] text-slate-400 font-mono">{new Date(wo.created_at).toLocaleDateString()}</span>
+                 <div className="flex gap-2">
+                    <button onClick={() => onEdit?.(wo)} className="text-blue-600 text-[10px] font-bold uppercase hover:underline">Edit</button>
+                    {onDelete && <button onClick={() => onDelete(wo.id)} className="text-rose-600 text-[10px] font-bold uppercase hover:underline">Delete</button>}
+                 </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">

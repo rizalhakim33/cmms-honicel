@@ -6,9 +6,78 @@ interface Props {
   assets: Asset[];
   onEdit?: (asset: Asset) => void;
   onDelete?: (id: string) => void;
+  viewMode?: 'grid' | 'list';
 }
 
-export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete }) => {
+export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode = 'grid' }) => {
+  if (viewMode === 'list') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+            <tr>
+              <th className="px-6 py-4">Asset</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Location</th>
+              <th className="px-6 py-4">Specs</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {assets.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm italic">
+                  No assets registered in database.
+                </td>
+              </tr>
+            ) : (
+              assets.map((asset) => (
+                <tr key={asset.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600">
+                        <Factory size={16} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{asset.name}</h3>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{asset.category}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      asset.status === 'operational' ? 'bg-emerald-50 text-emerald-600' : 
+                      asset.status === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {asset.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <MapPin size={14} className="text-slate-400" />
+                      <span>{asset.location}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs text-slate-500 font-mono truncate block max-w-[200px]">
+                      {JSON.stringify(asset.technical_specs).slice(0, 30)}...
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => onEdit?.(asset)} className="text-blue-600 text-[10px] font-bold uppercase hover:underline">Edit</button>
+                      <button onClick={() => onDelete?.(asset.id)} className="text-rose-600 text-[10px] font-bold uppercase hover:underline">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {assets.length === 0 ? (

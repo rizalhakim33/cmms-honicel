@@ -26,7 +26,9 @@ import {
   Filter,
   Plus,
   Menu,
-  FileText
+  FileText,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { exportWorkOrdersToPDF } from './lib/pdfExport';
 import { SparepartsManager } from './components/SparepartsManager';
@@ -46,6 +48,17 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [selectedAssetFilter, setSelectedAssetFilter] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem('honicel_viewmode') as 'grid' | 'list') || 'grid';
+  });
+
+  const toggleViewMode = () => {
+    setViewMode(prev => {
+      const next = prev === 'grid' ? 'list' : 'grid';
+      localStorage.setItem('honicel_viewmode', next);
+      return next;
+    });
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -688,6 +701,13 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-2 md:gap-3">
+              <button 
+                onClick={toggleViewMode}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-all cursor-pointer flex items-center gap-1"
+                title={`Switch to ${viewMode === 'grid' ? 'List' : 'Grid'} View`}
+              >
+                {viewMode === 'grid' ? <ListIcon className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+              </button>
               {isSupervisor && (
                 <button 
                   onClick={handleSyncPM}
@@ -1018,6 +1038,7 @@ export default function App() {
                   workOrders={getFilteredWorkOrders()} 
                   onEdit={(wo) => openModal('work_order', wo)}
                   onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
+                  viewMode={viewMode}
                 />
               </div>
             </div>
@@ -1053,6 +1074,7 @@ export default function App() {
                 assets={assets} 
                 onEdit={isSupervisor ? (a) => openModal('asset', a) : undefined}
                 onDelete={isSupervisor ? (id) => handleDelete(id, 'asset') : undefined}
+                viewMode={viewMode}
               />
             </div>
           )}
@@ -1083,16 +1105,17 @@ export default function App() {
                 schedules={pms} 
                 onEdit={isSupervisor ? (pm) => openModal('pm_schedule', pm) : undefined}
                 onDelete={isSupervisor ? (id) => handleDelete(id, 'pm_schedule') : undefined}
+                viewMode={viewMode}
               />
             </div>
           )}
 
           {activeTab === 'spare_parts' && (
-            <SparepartsManager assets={assets} userRole={userProfile?.role} />
+            <SparepartsManager assets={assets} userRole={userProfile?.role} viewMode={viewMode} />
           )}
 
           {activeTab === 'cash_flow' && (
-            <CashFlowManager />
+            <CashFlowManager viewMode={viewMode} />
           )}
 
           {activeTab === 'labor' && (
@@ -1125,6 +1148,7 @@ export default function App() {
                 profiles={labor} 
                 onEdit={userProfile?.role === 'admin' ? (l) => openModal('labor', l) : undefined}
                 onDelete={userProfile?.role === 'admin' ? (id) => handleDelete(id, 'labor') : undefined}
+                viewMode={viewMode}
               />
             </div>
           )}

@@ -17,7 +17,11 @@ import {
   HelpCircle
 } from 'lucide-react';
 
-export const CashFlowManager: React.FC = () => {
+interface CashFlowManagerProps {
+  viewMode?: 'grid' | 'list';
+}
+
+export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'list' }) => {
   const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -375,14 +379,14 @@ export const CashFlowManager: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto p-0">
           {filteredCashFlows.length === 0 ? (
             <div className="p-16 text-center text-slate-500">
               <HelpCircle className="mx-auto w-10 h-10 text-slate-300 mb-2 animate-bounce" />
               <p className="text-sm font-semibold">Belum Ada Pengeluaran</p>
               <p className="text-xs text-slate-400 mt-1">Gunakan sparepart di Work Order atau klik tambah pengeluaran operasional.</p>
             </div>
-          ) : (
+          ) : viewMode === 'list' ? (
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
@@ -424,6 +428,37 @@ export const CashFlowManager: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
+              {filteredCashFlows.map((cf) => (
+                <div key={cf.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
+                      cf.type === 'sparepart' 
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                        : cf.type === 'operational'
+                        ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                        : 'bg-purple-50 text-purple-600 border border-purple-100'
+                    }`}>
+                      {cf.type}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {new Date(cf.date).toLocaleDateString('id-ID', { year: '2-digit', month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base mb-2 group-hover:text-blue-600 transition-colors">{cf.title}</h3>
+                  <div className="mt-auto pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <span className="font-mono font-bold text-slate-900">{formatRupiah(cf.amount)}</span>
+                    <button 
+                      onClick={() => handleDelete(cf.id, cf.title)}
+                      className="text-[10px] font-bold text-rose-500 hover:text-rose-700 hover:underline uppercase cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

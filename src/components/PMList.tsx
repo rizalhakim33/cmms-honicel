@@ -6,9 +6,64 @@ interface Props {
   schedules: PMSchedule[];
   onEdit?: (pm: PMSchedule) => void;
   onDelete?: (id: string) => void;
+  viewMode?: 'grid' | 'list';
 }
 
-export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete }) => {
+export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, viewMode = 'list' }) => {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {schedules.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+            No preventive maintenance schedules defined.
+          </div>
+        ) : (
+          schedules.map((pm) => {
+            const isOverdue = new Date(pm.next_due_at) < new Date();
+            return (
+              <div key={pm.id} className={`bg-white rounded-xl border p-5 shadow-sm flex flex-col group transition-all relative ${isOverdue ? 'border-rose-200 bg-rose-50/10' : 'border-slate-200 hover:border-blue-300'}`}>
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${isOverdue ? 'bg-rose-100 border-rose-200 text-rose-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                    <Calendar size={18} />
+                  </div>
+                  <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {isOverdue ? 'Overdue' : 'Scheduled'}
+                  </div>
+                </div>
+                
+                <h3 className="text-sm font-bold text-slate-800 mb-2 truncate group-hover:text-blue-600 transition-colors">
+                  {pm.title}
+                </h3>
+                
+                <div className="space-y-2 mb-4 flex-1">
+                   <div className="text-xs text-slate-600 flex items-center gap-2">
+                     <span className="font-bold">Asset:</span> 
+                     <span className="truncate">{pm.asset?.name || pm.asset_id.slice(0,8)}</span>
+                   </div>
+                   <div className="text-xs text-slate-600 flex items-center gap-2">
+                     <span className="font-bold">Freq:</span> 
+                     <span className="flex items-center gap-1"><RefreshCw size={12}/> Every {pm.frequency_days} Days</span>
+                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div className={`flex items-center gap-1.5 font-mono text-xs font-bold ${isOverdue ? 'text-rose-600' : 'text-slate-600'}`}>
+                    <Clock size={12} />
+                    {new Date(pm.next_due_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => onEdit?.(pm)} className="text-[10px] font-bold text-blue-600 hover:underline uppercase">Edit</button>
+                    <button onClick={() => onDelete?.(pm.id)} className="text-[10px] font-bold text-rose-600 hover:underline uppercase">Delete</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {schedules.length === 0 ? (

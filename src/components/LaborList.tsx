@@ -6,9 +6,50 @@ interface Props {
   profiles: LaborProfile[];
   onEdit?: (labor: LaborProfile) => void;
   onDelete?: (id: string) => void;
+  viewMode?: 'grid' | 'list';
 }
 
-export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete }) => {
+export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, viewMode = 'list' }) => {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {profiles.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+            No active labor profiles found.
+          </div>
+        ) : (
+          profiles.map((person) => (
+            <div key={person.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg shrink-0">
+                  {person.full_name.charAt(0)}
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => onEdit?.(person)} className="p-1 px-2 text-[10px] font-bold uppercase text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-pointer">Edit</button>
+                  <button onClick={() => onDelete?.(person.id)} className="p-1 px-2 text-[10px] font-bold uppercase text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer">Delete</button>
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-slate-800 text-lg mb-1 truncate">{person.full_name}</h3>
+              <p className="text-[10px] text-slate-400 font-mono tracking-tight mb-4">{person.id.slice(0, 8)}</p>
+              
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                  <Briefcase size={14} className="text-slate-400" />
+                  <span className="capitalize">{person.specialization}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                  <Shield size={14} className="text-slate-400" />
+                  <span className="capitalize">{person.role}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
       <table className="w-full text-left">

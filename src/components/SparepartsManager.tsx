@@ -22,9 +22,10 @@ import { motion } from 'motion/react';
 interface Props {
   assets: Asset[];
   userRole?: string;
+  viewMode?: 'grid' | 'list';
 }
 
-export const SparepartsManager: React.FC<Props> = ({ assets, userRole }) => {
+export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode = 'grid' }) => {
   const [spareparts, setSpareparts] = useState<Sparepart[]>([]);
   const [installedParts, setInstalledParts] = useState<InstalledSparepart[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,14 +417,14 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole }) => {
           </div>
         ) : activeSubTab === 'inventory' ? (
           /* Inventory Table */
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto p-0">
             {filteredSpareparts.length === 0 ? (
               <div className="p-16 text-center text-slate-500">
                 <Package className="mx-auto w-10 h-10 text-slate-300 mb-2" />
                 <p className="text-sm font-semibold">Tidak Ada Sparepart</p>
                 <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci Anda atau daftarkan baru.</p>
               </div>
-            ) : (
+            ) : viewMode === 'list' ? (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
@@ -473,6 +474,42 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole }) => {
                   ))}
                 </tbody>
               </table>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
+                {filteredSpareparts.map((sp) => (
+                  <div key={sp.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group">
+                     <div className="flex justify-between w-full mb-3">
+                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                          <Package size={20} />
+                       </div>
+                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          sp.stock === 0 
+                            ? 'bg-rose-50 text-rose-600 border border-rose-100' 
+                            : sp.stock < 5 
+                            ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                            : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                        }`}>
+                          {sp.stock} In Stock
+                        </span>
+                     </div>
+                     <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors mb-2">{sp.name}</h3>
+                     <div className="space-y-2 mb-4 w-full">
+                       <div className="flex items-center gap-2 text-xs text-slate-600">
+                         <span className="font-bold w-20">Price:</span>
+                         <span className="font-mono text-slate-700">{formatRupiah(sp.price)}</span>
+                       </div>
+                       <div className="flex items-center gap-2 text-xs text-slate-600">
+                         <span className="font-bold w-20">Lifetime:</span>
+                         <span className="font-mono text-slate-700">{sp.estimated_lifetime_hours} hrs</span>
+                       </div>
+                     </div>
+                     <div className="pt-4 border-t border-slate-100 flex justify-end gap-2 w-full mt-auto">
+                        <button onClick={() => handleOpenEdit(sp)} className="text-[10px] font-bold uppercase text-blue-600 hover:underline">Edit</button>
+                        <button onClick={() => handleDelete(sp.id, sp.name)} className="text-[10px] font-bold uppercase text-rose-600 hover:underline">Delete</button>
+                     </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ) : (
@@ -483,6 +520,86 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole }) => {
                 <Wrench className="mx-auto w-10 h-10 text-slate-300 mb-2" />
                 <p className="text-sm font-semibold">Belum Ada Sparepart Terpasang</p>
                 <p className="text-xs">Selesaikan Work Order berisi detail penggantian untuk memantau umur suku cadang di sini.</p>
+              </div>
+            ) : viewMode === 'list' ? (
+              <div className="overflow-x-auto p-0 -m-6">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
+                      <th className="px-6 py-3.5">Sparepart</th>
+                      <th className="px-6 py-3.5">Mesin / Asset</th>
+                      <th className="px-6 py-3.5">Status & Health</th>
+                      <th className="px-6 py-3.5">Instalasi / Sisa Umur</th>
+                      {userRole === 'admin' && <th className="px-6 py-3.5 text-right flex-shrink-0">Aksi</th>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                    {processedInstalled.map((ip) => {
+                      const { accumulated, remaining, health, isHistorical } = ip as any;
+                      return (
+                        <tr key={ip.id} className={`hover:bg-slate-50/50 transition-all ${isHistorical ? 'bg-slate-50/30' : ''}`}>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className={`font-bold ${isHistorical ? 'text-slate-500 line-through decoration-slate-300' : 'text-slate-800'}`}>
+                                {ip.sparepart_name}
+                              </span>
+                              <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                                {isHistorical ? 'Replaced Part' : 'Installed Part'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-semibold text-slate-600">
+                            {ip.asset?.name || 'Unknown Asset'}
+                          </td>
+                          <td className="px-6 py-4">
+                            {isHistorical ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-500 border-slate-200">
+                                Replaced
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-3">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                  health >= 75 
+                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                                    : health >= 35 
+                                    ? 'bg-amber-50 text-amber-600 border-amber-200' 
+                                    : 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
+                                }`}>
+                                  {health}%
+                                </span>
+                                <div className="hidden md:block w-24 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${health >= 75 ? 'bg-emerald-500' : health >= 35 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                    style={{ width: `${health}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col text-xs">
+                               <span className="text-slate-500">Tgl: {new Date(ip.installed_at).toLocaleDateString('id-ID')}</span>
+                               <span className={`font-bold ${isHistorical ? 'text-slate-400' : remaining < 100 ? 'text-rose-600' : 'text-slate-600'}`}>
+                                 Sisa: {isHistorical ? '-' : `${remaining} hrs`}
+                               </span>
+                            </div>
+                          </td>
+                          {userRole === 'admin' && (
+                            <td className="px-6 py-4 text-right">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteInstalled(ip.id, ip.sparepart_name); }}
+                                className="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md transition-colors inline-block"
+                                title="Hapus Tracking Histori"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
