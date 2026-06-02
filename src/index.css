@@ -11,8 +11,50 @@
   --ink: #0F172A;
 }
 
+.dark {
+  --color-white: #0f172a;
+  --color-slate-50: #020617;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #f1f5f9;
+  --color-slate-900: #f8fafc;
+  
+  --color-blue-50: #172554;
+  --color-blue-100: #1e3a8a;
+  --color-blue-200: #1e40af;
+  --color-blue-500: #3b82f6; 
+  --color-blue-600: #60a5fa;
+  --color-blue-700: #93c5fd;
+
+  --color-emerald-50: #022c22;
+  --color-emerald-100: #064e3b;
+  --color-emerald-200: #065f46;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+
+  --color-amber-50: #451a03;
+  --color-amber-100: #78350f;
+  --color-amber-200: #92400e;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #fbbf24;
+
+  --color-rose-50: #4c0519;
+  --color-rose-100: #881337;
+  --color-rose-200: #9f1239;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #fb7185;
+
+  --bg: #0f172a;
+  --ink: #f8fafc;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased overflow-hidden;
+  @apply bg-slate-50 text-slate-900 antialiased overflow-hidden transition-colors duration-300;
   font-family: var(--font-sans);
 }
 

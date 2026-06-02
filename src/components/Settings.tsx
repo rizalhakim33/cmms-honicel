@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, supabaseAdminAuth } from '../lib/supabase';
-import { Shield, Key, AlertTriangle, RefreshCw, CheckCircle2, Save, Trash2, UserX } from 'lucide-react';
+import { Shield, Key, AlertTriangle, RefreshCw, CheckCircle2, Save, Trash2, UserX, Moon, Sun } from 'lucide-react';
 import { Session } from '@supabase/supabase-js';
 
 interface SettingsProps {
@@ -16,14 +16,28 @@ export const SettingsTab: React.FC<SettingsProps> = ({ userProfile, session, onR
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const [deletionRequests, setDeletionRequests] = useState<any[]>([]);
 
   useEffect(() => {
+    setIsDarkMode(document.documentElement.classList.contains('dark'));
     if (isAdmin) {
       fetchDeletionRequests();
     }
   }, [isAdmin]);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('honicel_theme', 'light');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('honicel_theme', 'dark');
+      setIsDarkMode(true);
+    }
+  };
 
   const fetchDeletionRequests = async () => {
     try {
@@ -168,6 +182,32 @@ export const SettingsTab: React.FC<SettingsProps> = ({ userProfile, session, onR
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Appearance / Theme Settings */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
+              {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Tampilan</h2>
+              <p className="text-xs text-slate-500">Sesuaikan tema aplikasi (Gelap / Terang).</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-slate-100 bg-slate-50 rounded-lg">
+            <div>
+              <div className="font-bold text-sm text-slate-800">Mode Gelap</div>
+              <div className="text-xs text-slate-500">Gunakan tema gelap untuk mengurangi silau</div>
+            </div>
+            <button 
+              onClick={toggleDarkMode}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDarkMode ? 'bg-blue-600' : 'bg-slate-300'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </div>
+
         {/* Update Credentials Card */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
