@@ -21,9 +21,10 @@ import { motion } from 'motion/react';
 
 interface Props {
   assets: Asset[];
+  userRole?: string;
 }
 
-export const SparepartsManager: React.FC<Props> = ({ assets }) => {
+export const SparepartsManager: React.FC<Props> = ({ assets, userRole }) => {
   const [spareparts, setSpareparts] = useState<Sparepart[]>([]);
   const [installedParts, setInstalledParts] = useState<InstalledSparepart[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,6 +241,30 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
       const filtered = spareparts.filter(x => x.id !== id);
       setSpareparts(filtered);
       localStorage.setItem('honicel_spareparts', JSON.stringify(filtered));
+      setSuccess('Item dihapus secara lokal.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteInstalled = async (id: string, spName: string) => {
+    if (!confirm(`Hapus history sparepart terpasang "${spName}" dari sistem?`)) return;
+    
+    try {
+      setLoading(true);
+      const { error: delError } = await supabase
+        .from('installed_spareparts')
+        .delete()
+        .eq('id', id);
+      
+      if (delError) throw delError;
+      setSuccess('History suku cadang terpasang dihapus.');
+      fetchSparepartsData();
+    } catch (err: any) {
+      console.error("Supabase delete failed:", err);
+      const filtered = installedParts.filter(x => x.id !== id);
+      setInstalledParts(filtered);
+      localStorage.setItem('honicel_installed_spareparts', JSON.stringify(filtered));
       setSuccess('Item dihapus secara lokal.');
     } finally {
       setLoading(false);
@@ -478,7 +503,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
                             <h3 className="text-base font-bold text-slate-800 mt-1">{ip.sparepart_name}</h3>
                           </div>
                           
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-2">
                             {isHistorical ? (
                               <span className="px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-500 border-slate-200">
                                 History (Replaced)
@@ -493,6 +518,15 @@ export const SparepartsManager: React.FC<Props> = ({ assets }) => {
                               }`}>
                                 {health}% Healthy
                               </span>
+                            )}
+                            {userRole === 'admin' && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteInstalled(ip.id, ip.sparepart_name); }}
+                                className="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md transition-colors"
+                                title="Hapus Tracking Histori"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             )}
                           </div>
                         </div>

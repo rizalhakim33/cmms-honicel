@@ -1088,7 +1088,7 @@ export default function App() {
           )}
 
           {activeTab === 'spare_parts' && (
-            <SparepartsManager assets={assets} />
+            <SparepartsManager assets={assets} userRole={userProfile?.role} />
           )}
 
           {activeTab === 'cash_flow' && (
