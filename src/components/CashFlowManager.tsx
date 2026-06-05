@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CashFlow } from '../types';
 import { CSVImportExport } from './CSVImportExport';
+import { useSort } from '../hooks/useSort';
 import { 
   Plus, 
   TrendingDown, 
@@ -14,7 +15,10 @@ import {
   CheckCircle2, 
   Filter,
   ArrowDownCircle,
-  HelpCircle
+  HelpCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface CashFlowManagerProps {
@@ -178,6 +182,13 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
       currency: 'IDR',
       maximumFractionDigits: 0
     }).format(val);
+  };
+
+  const { sortedItems, sortField, sortDirection, handleSort } = useSort(filteredCashFlows, 'date', 'desc');
+
+  const SortIcon = ({ field }: { field: keyof CashFlow }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
   };
 
   // KPI Calculations
@@ -390,15 +401,23 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
-                  <th className="px-6 py-3.5">Tanggal</th>
-                  <th className="px-6 py-3.5">Tipe</th>
-                  <th className="px-6 py-3.5">Keterangan Pengeluaran</th>
-                  <th className="px-6 py-3.5">Nominal Biaya</th>
+                  <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('date')}>
+                     <div className="flex items-center gap-1.5">Tanggal <SortIcon field="date" /></div>
+                  </th>
+                  <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('type')}>
+                    <div className="flex items-center gap-1.5">Tipe <SortIcon field="type" /></div>
+                  </th>
+                  <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('title')}>
+                    <div className="flex items-center gap-1.5">Keterangan Pengeluaran <SortIcon field="title" /></div>
+                  </th>
+                  <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('amount')}>
+                    <div className="flex items-center gap-1.5">Nominal Biaya <SortIcon field="amount" /></div>
+                  </th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {filteredCashFlows.map((cf) => (
+                {sortedItems.map((cf) => (
                   <tr key={cf.id} className="hover:bg-slate-50/50 transition-all">
                     <td className="px-6 py-4 text-xs font-medium text-slate-500 whitespace-nowrap">
                       {new Date(cf.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -430,7 +449,7 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
             </table>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-              {filteredCashFlows.map((cf) => (
+              {sortedItems.map((cf) => (
                 <div key={cf.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
                   <div className="flex justify-between items-start mb-3">
                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${

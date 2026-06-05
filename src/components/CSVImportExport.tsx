@@ -6,7 +6,7 @@ interface Props {
   fileName: string;
   fields: string[];
   humanHeaders: string[];
-  type: 'asset' | 'labor' | 'sparepart' | 'cash_flow';
+  type: 'asset' | 'labor' | 'sparepart' | 'cash_flow' | 'work_order';
   onImport: (newData: any[]) => Promise<void>;
 }
 
@@ -33,8 +33,8 @@ export const CSVImportExport: React.FC<Props> = ({
       demoRow = 'Supriadi Hermawan,Mechanical Senior,technician';
     } else if (type === 'sparepart') {
       demoRow = 'Bearing NSK 6204 ZZ,25,145000,3000';
-    } else if (type === 'cash_flow') {
-      demoRow = 'operational,Kontraktor Jasa Kalibrasi Sensor,1250000,2026-05-26';
+    } else if (type === 'work_order') {
+      demoRow = 'Pemeriksaan Rutin,open,medium,d290f1ee-6c54-4b01-90e6-d701748f0851,b560f1ea-1c51-4122-9011-e121748f0111,,';
     }
     return `${headersLine}\n${demoRow}`;
   };
@@ -225,6 +225,27 @@ export const CSVImportExport: React.FC<Props> = ({
             // Date fallback
             const dateStr = record.date || new Date().toISOString().split('T')[0];
             record.date = dateStr;
+          } else if (type === 'work_order') {
+            if (!record.title) throw new Error(`Baris ke-${rowNum}: Judul Work Order tidak boleh kosong!`);
+            
+            const validStatus = ['open', 'in_progress', 'completed'];
+            if (record.status && !validStatus.includes(record.status.toLowerCase())) {
+              throw new Error(`Baris ke-${rowNum}: Status harus "open", "in_progress", atau "completed"!`);
+            }
+            record.status = record.status?.toLowerCase() || 'open';
+
+            const validPriority = ['low', 'medium', 'high', 'critical'];
+            if (record.priority && !validPriority.includes(record.priority.toLowerCase())) {
+              throw new Error(`Baris ke-${rowNum}: Prioritas harus "low", "medium", "high", atau "critical"!`);
+            }
+            record.priority = record.priority?.toLowerCase() || 'medium';
+            
+            // Generate UUID if not provided but we need ids for mapping...
+            // the database handles UUID generation if omitted from insert
+            
+            if (!record.asset_id) delete record.asset_id;
+            if (!record.assignee_id) delete record.assignee_id;
+            if (!record.created_at) delete record.created_at;
           }
 
           parsedRecords.push(record);

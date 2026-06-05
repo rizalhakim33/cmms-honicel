@@ -44,6 +44,8 @@ export default function App() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [labor, setLabor] = useState<LaborProfile[]>([]);
   const [pms, setPms] = useState<PMSchedule[]>([]);
+  const [spareparts, setSpareparts] = useState<any[]>([]);
+  const [cashFlows, setCashFlows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
@@ -94,17 +96,21 @@ export default function App() {
         woQuery = woQuery.eq('assignee_id', userProfile.id);
       }
       
-      const [woRes, assetRes, laborRes, pmRes] = await Promise.all([
+      const [woRes, assetRes, laborRes, pmRes, spRes, cfRes] = await Promise.all([
         woQuery.order('created_at', { ascending: false }),
         supabase.from('assets').select('*').order('name'),
         supabase.from('labor_profiles').select('*'),
-        supabase.from('pm_schedules').select('*, asset:assets(*)').order('next_due_at')
+        supabase.from('pm_schedules').select('*, asset:assets(*)').order('next_due_at'),
+        supabase.from('spareparts').select('*'),
+        supabase.from('cash_flows').select('*')
       ]);
 
       if (woRes.data) setWorkOrders(woRes.data);
       if (assetRes.data) setAssets(assetRes.data);
       if (laborRes.data) setLabor(laborRes.data);
       if (pmRes.data) setPms(pmRes.data);
+      if (spRes.data) setSpareparts(spRes.data);
+      if (cfRes.data) setCashFlows(cfRes.data);
 
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -554,6 +560,20 @@ export default function App() {
     });
   };
 
+  const handleImportWorkOrders = async (newData: any[]) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.from('work_orders').insert(newData);
+      if (error) throw error;
+      await fetchData();
+    } catch (e: any) {
+      console.error('Work Order import failed', e);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isSupervisor = userProfile?.role === 'admin' || userProfile?.role === 'supervisor';
 
   const activeWOs = workOrders.filter(wo => wo.status !== 'completed').length;
@@ -742,9 +762,9 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-6 pb-12">
               {/* KPI Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 <KPICard 
-                  label="Mean Time To Repair (MTTR)" 
+                  label="Mean Time To Repair" 
                   value={dynamicMTTR} 
                   unit="hours"
                   icon={Clock} 
@@ -758,7 +778,7 @@ export default function App() {
                   colorClass="text-amber-500"
                 />
                 <KPICard 
-                  label="Mean Time Between Failures (MTBF)" 
+                  label="Mean Time Between Failures" 
                   value={dynamicMTBF} 
                   unit="hours"
                   icon={Activity} 
@@ -770,6 +790,23 @@ export default function App() {
                   value={assets.length} 
                   icon={CheckCircle2} 
                   colorClass="text-emerald-500"
+                />
+                <KPICard 
+                  label="Critical Spareparts" 
+                  value={spareparts.filter(s => s.stock < 5).length} 
+                  icon={AlertCircle} 
+                  colorClass="text-rose-600"
+                />
+                <KPICard 
+                  label="Total Spending" 
+                  value={new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    maximumFractionDigits: 0,
+                    notation: 'compact'
+                  }).format(cashFlows.reduce((sum, cf) => sum + cf.amount, 0))} 
+                  icon={FileText} 
+                  colorClass="text-indigo-600"
                 />
               </div>
 
@@ -1034,6 +1071,16 @@ export default function App() {
                   >
                     <FileText size={16} /> EXPORT PDF
                   </button>
+                  {isSupervisor && (
+                    <CSVImportExport
+                      data={getFilteredWorkOrders()}
+                      fileName="honicel_work_orders"
+                      fields={['title', 'status', 'priority', 'asset_id', 'assignee_id', 'pm_id', 'created_at']}
+                      humanHeaders={['Judul', 'Status', 'Prioritas', 'ID Asset', 'ID Pegawai', 'ID PM', 'Tanggal Dibuat']}
+                      type="work_order"
+                      onImport={handleImportWorkOrders}
+                    />
+                  )}
                 </div>
               </div>
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

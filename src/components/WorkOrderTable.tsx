@@ -1,6 +1,7 @@
 import React from 'react';
 import { WorkOrder, WOPriority, WOStatus } from '../types';
-import { Circle, Clock, CheckCircle2, AlertTriangle, User } from 'lucide-react';
+import { Circle, Clock, CheckCircle2, AlertTriangle, User, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useSort } from '../hooks/useSort';
 
 const priorityColors: Record<WOPriority, string> = {
   low: 'border-blue-100 text-blue-700 bg-blue-100',
@@ -24,15 +25,22 @@ interface Props {
 }
 
 export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, viewMode = 'list' }) => {
+  const { sortedItems, sortField, sortDirection, handleSort } = useSort(workOrders, 'created_at', 'desc');
+
+  const SortIcon = ({ field }: { field: keyof WorkOrder }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
+  };
+
   if (viewMode === 'grid') {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-        {workOrders.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
             No active work orders found.
           </div>
         ) : (
-          workOrders.map((wo) => (
+          sortedItems.map((wo) => (
             <div key={wo.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
               <div className="flex justify-between items-start mb-4">
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
@@ -88,24 +96,36 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
       <table className="w-full text-left border-collapse">
         <thead className="sticky top-0 bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
           <tr>
-            <th className="px-6 py-4">Status</th>
-            <th className="px-6 py-4">Work Order</th>
-            <th className="px-6 py-4">Priority</th>
-            <th className="px-6 py-4">Asset</th>
-            <th className="px-6 py-4">Assignee</th>
-            <th className="px-6 py-4">Created</th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
+              <div className="flex items-center gap-1.5">Status <SortIcon field="status" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('title')}>
+              <div className="flex items-center gap-1.5">Work Order <SortIcon field="title" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('priority')}>
+              <div className="flex items-center gap-1.5">Priority <SortIcon field="priority" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('asset_id')}>
+              <div className="flex items-center gap-1.5">Asset <SortIcon field="asset_id" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('assignee_id')}>
+              <div className="flex items-center gap-1.5">Assignee <SortIcon field="assignee_id" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('created_at')}>
+              <div className="flex items-center gap-1.5">Created <SortIcon field="created_at" /></div>
+            </th>
             <th className="px-6 py-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {workOrders.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                 No active work orders found.
               </td>
             </tr>
           ) : (
-            workOrders.map((wo) => (
+            sortedItems.map((wo) => (
               <tr 
                 key={wo.id} 
                 className="group hover:bg-slate-50 transition-colors"

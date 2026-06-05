@@ -1,6 +1,7 @@
 import React from 'react';
 import { Asset } from '../types';
-import { Factory, MapPin, Cpu, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Factory, MapPin, Cpu, CheckCircle2, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useSort } from '../hooks/useSort';
 
 interface Props {
   assets: Asset[];
@@ -10,28 +11,41 @@ interface Props {
 }
 
 export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode = 'grid' }) => {
+  const { sortedItems, sortField, sortDirection, handleSort } = useSort(assets, 'name', 'asc');
+
+  const SortIcon = ({ field }: { field: keyof Asset }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
+  };
+
   if (viewMode === 'list') {
     return (
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
             <tr>
-              <th className="px-6 py-4">Asset</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Location</th>
+              <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
+                <div className="flex items-center gap-1.5">Asset <SortIcon field="name" /></div>
+              </th>
+              <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
+                 <div className="flex items-center gap-1.5">Status <SortIcon field="status" /></div>
+              </th>
+              <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('location')}>
+                 <div className="flex items-center gap-1.5">Location <SortIcon field="location" /></div>
+              </th>
               <th className="px-6 py-4">Specs</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {assets.length === 0 ? (
+            {sortedItems.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                   No assets registered in database.
                 </td>
               </tr>
             ) : (
-              assets.map((asset) => (
+              sortedItems.map((asset) => (
                 <tr key={asset.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -80,12 +94,12 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {assets.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
           No assets registered in database.
         </div>
       ) : (
-        assets.map((asset) => (
+        sortedItems.map((asset) => (
           <div key={asset.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden group hover:border-blue-500 transition-all flex flex-col">
             <div className="p-5 border-b border-slate-50 flex justify-between items-start">
               <div className="flex items-center gap-3">

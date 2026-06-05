@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sparepart, InstalledSparepart, Asset } from '../types';
 import { CSVImportExport } from './CSVImportExport';
+import { useSort } from '../hooks/useSort';
 import { 
   Plus, 
   Search, 
@@ -15,7 +16,10 @@ import {
   Package, 
   Gauge,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -329,6 +333,19 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
     }).format(val);
   };
 
+  const { sortedItems: sortedSpareparts, sortField: sortFieldSp, sortDirection: sortDirSp, handleSort: handleSortSp } = useSort(filteredSpareparts, 'name', 'asc');
+  const { sortedItems: sortedInstalled, sortField: sortFieldInst, sortDirection: sortDirInst, handleSort: handleSortInst } = useSort(processedInstalled, 'installed_at', 'desc');
+
+  const SortIconSp = ({ field }: { field: keyof Sparepart }) => {
+    if (sortFieldSp !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirSp === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
+  };
+
+  const SortIconInst = ({ field }: { field: any }) => {
+    if (sortFieldInst !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirInst === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Messages */}
@@ -428,15 +445,23 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
-                    <th className="px-6 py-3.5">Nama Suku Cadang</th>
-                    <th className="px-6 py-3.5">Jumlah Stok (Warehouse)</th>
-                    <th className="px-6 py-3.5">Harga Standard</th>
-                    <th className="px-6 py-3.5">Estimasi Lifetime</th>
+                    <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('name')}>
+                      <div className="flex items-center gap-1.5">Nama Suku Cadang <SortIconSp field="name" /></div>
+                    </th>
+                    <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('stock')}>
+                      <div className="flex items-center gap-1.5">Jumlah Stok (Warehouse) <SortIconSp field="stock" /></div>
+                    </th>
+                    <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('price')}>
+                      <div className="flex items-center gap-1.5">Harga Standard <SortIconSp field="price" /></div>
+                    </th>
+                    <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('estimated_lifetime_hours')}>
+                      <div className="flex items-center gap-1.5">Estimasi Lifetime <SortIconSp field="estimated_lifetime_hours" /></div>
+                    </th>
                     <th className="px-6 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                  {filteredSpareparts.map((sp) => (
+                  {sortedSpareparts.map((sp) => (
                     <tr key={sp.id} className="hover:bg-slate-50/50 transition-all">
                       <td className="px-6 py-4 font-bold text-slate-800">{sp.name}</td>
                       <td className="px-6 py-4">
@@ -476,7 +501,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               </table>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-                {filteredSpareparts.map((sp) => (
+                {sortedSpareparts.map((sp) => (
                   <div key={sp.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group">
                      <div className="flex justify-between w-full mb-3">
                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
@@ -526,15 +551,21 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
-                      <th className="px-6 py-3.5">Sparepart</th>
-                      <th className="px-6 py-3.5">Mesin / Asset</th>
+                      <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortInst('sparepart_name')}>
+                        <div className="flex items-center gap-1.5">Sparepart <SortIconInst field="sparepart_name" /></div>
+                      </th>
+                      <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortInst('asset_id')}>
+                        <div className="flex items-center gap-1.5">Mesin / Asset <SortIconInst field="asset_id" /></div>
+                      </th>
                       <th className="px-6 py-3.5">Status & Health</th>
-                      <th className="px-6 py-3.5">Instalasi / Sisa Umur</th>
+                      <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortInst('installed_at')}>
+                        <div className="flex items-center gap-1.5">Instalasi / Sisa Umur <SortIconInst field="installed_at" /></div>
+                      </th>
                       {userRole === 'admin' && <th className="px-6 py-3.5 text-right flex-shrink-0">Aksi</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                    {processedInstalled.map((ip) => {
+                    {sortedInstalled.map((ip) => {
                       const { accumulated, remaining, health, isHistorical } = ip as any;
                       return (
                         <tr key={ip.id} className={`hover:bg-slate-50/50 transition-all ${isHistorical ? 'bg-slate-50/30' : ''}`}>
@@ -603,7 +634,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {processedInstalled.map((ip) => {
+                {sortedInstalled.map((ip) => {
                   const { accumulated, remaining, health, isHistorical } = ip as any;
                   return (
                     <div 

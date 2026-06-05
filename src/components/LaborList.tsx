@@ -1,6 +1,7 @@
 import React from 'react';
 import { LaborProfile } from '../types';
-import { User, Shield, Briefcase, Mail } from 'lucide-react';
+import { User, Shield, Briefcase, Mail, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useSort } from '../hooks/useSort';
 
 interface Props {
   profiles: LaborProfile[];
@@ -10,15 +11,22 @@ interface Props {
 }
 
 export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, viewMode = 'list' }) => {
+  const { sortedItems, sortField, sortDirection, handleSort } = useSort(profiles, 'full_name', 'asc');
+
+  const SortIcon = ({ field }: { field: keyof LaborProfile }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
+  };
+
   if (viewMode === 'grid') {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {profiles.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
             No active labor profiles found.
           </div>
         ) : (
-          profiles.map((person) => (
+          sortedItems.map((person) => (
             <div key={person.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg shrink-0">
@@ -55,21 +63,27 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, viewMod
       <table className="w-full text-left">
         <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
           <tr>
-            <th className="px-6 py-4">Technician</th>
-            <th className="px-6 py-4">Specialization</th>
-            <th className="px-6 py-4">System Role</th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('full_name')}>
+              <div className="flex items-center gap-1.5">Technician <SortIcon field="full_name" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('specialization')}>
+              <div className="flex items-center gap-1.5">Specialization <SortIcon field="specialization" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('role')}>
+              <div className="flex items-center gap-1.5">System Role <SortIcon field="role" /></div>
+            </th>
             <th className="px-6 py-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {profiles.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <tr>
               <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                 No active labor profiles found.
               </td>
             </tr>
           ) : (
-            profiles.map((person) => (
+            sortedItems.map((person) => (
               <tr key={person.id} className="hover:bg-slate-50 transition-colors group">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
