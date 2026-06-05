@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <polygon points="250,20 449,135 449,365 250,480 51,365 51,135" fill="none" stroke="#0000FF" stroke-width="12"/>
+  <polygon points="260,250 307.25,168.2 401.75,168.2 449,250 401.75,331.8 307.25,331.8" fill="#0000FF" />
+  <text x="70" y="278" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="78" fill="#0000FF" letter-spacing="4">HONI</text>
+  <text x="275" y="278" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="78" fill="#FFFFFF" letter-spacing="4">CEL</text>
+  <text x="430" y="215" font-family="'Arial', 'Helvetica', sans-serif" font-weight="bold" font-size="28" fill="#FFFFFF">®</text>
+</svg>

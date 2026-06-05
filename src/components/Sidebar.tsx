@@ -63,9 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeId, onNavigate, isOpen, 
       `}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white font-bold">
-              H
-            </div>
+            <img src="/logo.svg" alt="Honicel Logo" className="w-8 h-8 object-contain" />
             <div>
               <h1 className="text-white font-bold text-sm tracking-tight">eCMMS - <span className="text-blue-400">Honicel ID</span></h1>
               <p className="text-[10px] uppercase tracking-widest opacity-50">Industrial Portal v2.0</p>
