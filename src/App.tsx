@@ -273,6 +273,8 @@ export default function App() {
             .eq('id', oldPart.id);
         }
 
+        const woDate = payload.created_at || new Date().toISOString();
+
         await supabase
           .from('installed_spareparts')
           .insert([{
@@ -280,7 +282,7 @@ export default function App() {
             work_order_id: payload.id || null,
             sparepart_name: spName,
             quantity: qty,
-            installed_at: new Date().toISOString(),
+            installed_at: woDate,
             estimated_lifetime_hours: estLifetime
           }]);
 
@@ -290,7 +292,7 @@ export default function App() {
             type: 'sparepart',
             title: `Replace ${spName} on ${assetName}`,
             amount: price * qty,
-            date: new Date().toISOString().split('T')[0],
+            date: woDate.split('T')[0],
             reference_id: payload.id || null
           }]);
 
@@ -336,13 +338,14 @@ export default function App() {
           oldLocalPart.estimated_lifetime_hours = hoursDiff;
         }
 
+        const woDate = payload.created_at || new Date().toISOString();
         fallbackInst.push({
           id: crypto.randomUUID(),
           asset_id: payload.asset_id,
           work_order_id: payload.id || null,
           sparepart_name: payload.replaced_sparepart_name.trim(),
           quantity: payload.replaced_sparepart_qty || 1,
-          installed_at: new Date().toISOString(),
+          installed_at: woDate,
           estimated_lifetime_hours: estLifetime
         });
         localStorage.setItem('honicel_installed_spareparts', JSON.stringify(fallbackInst));
@@ -354,7 +357,7 @@ export default function App() {
           type: 'sparepart',
           title: `Autonomous Expense: ${payload.replaced_sparepart_name} on Machine`,
           amount: price * (payload.replaced_sparepart_qty || 1),
-          date: new Date().toISOString().split('T')[0],
+          date: woDate.split('T')[0],
           reference_id: payload.id || null,
           created_at: new Date().toISOString()
         });

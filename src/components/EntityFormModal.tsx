@@ -244,6 +244,33 @@ export const EntityFormModal: React.FC<Props> = ({
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Tanggal WO (Opsional)</label>
+                  <input 
+                    type="date"
+                    value={formData.created_at ? formData.created_at.split('T')[0] : ''}
+                    onChange={e => {
+                      if (e.target.value) {
+                        try {
+                          const date = new Date(e.target.value);
+                          if (!isNaN(date.getTime())) {
+                            handleChange('created_at', date.toISOString());
+                          }
+                        } catch(err) {}
+                      } else {
+                        // Allow clearing the date to use the default/current datetime
+                        const currentData = { ...formData };
+                        delete currentData.created_at;
+                        setFormData(currentData);
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                  <p className="text-[9px] text-slate-400 mt-1">
+                    Isi hanya jika Anda ingin memasukkan data WO lama. Kosongkan untuk menggunakan waktu saat ini.
+                  </p>
+                </div>
+
                 {/* Replaced spare part input tracking */}
                 <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 space-y-3">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
