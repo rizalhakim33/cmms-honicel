@@ -166,7 +166,7 @@ export const CSVImportExport: React.FC<Props> = ({
             record.status = checkedStatus || 'operational';
             // Default technical specs
             record.technical_specs = { importedFromCSV: true, category: record.category };
-            record.qr_code_data = `HONICEL-${(record.name || '').toUpperCase().replace(/\s+/g, '-')}`;
+            record.qr_code_data = record.qr_code_data || `HONICEL-${record.asset_code ? String(record.asset_code).toUpperCase().replace(/\s+/g, '-') : (record.name || '').toUpperCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
           }
 
           else if (type === 'labor') {

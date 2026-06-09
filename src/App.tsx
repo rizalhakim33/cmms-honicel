@@ -408,7 +408,7 @@ export default function App() {
           location: item.location,
           status: item.status || 'operational',
           technical_specs: item.technical_specs || {},
-          qr_code_data: item.qr_code_data || `HONICEL-${(item.name || '').toUpperCase().replace(/\s+/g, '-')}`,
+          qr_code_data: item.qr_code_data || `HONICEL-${item.asset_code ? String(item.asset_code).toUpperCase().replace(/\s+/g, '-') : (item.name || '').toUpperCase().replace(/\s+/g, '-')}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
