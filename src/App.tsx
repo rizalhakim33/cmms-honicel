@@ -379,6 +379,8 @@ export default function App() {
       const withIds = newAssets.map(item => ({
         id: crypto.randomUUID(),
         name: item.name,
+        asset_code: item.asset_code || null,
+        parent_id: item.parent_id || null,
         category: item.category || 'other',
         location: item.location,
         status: item.status || 'operational',
@@ -1075,8 +1077,8 @@ export default function App() {
                     <CSVImportExport
                       data={getFilteredWorkOrders()}
                       fileName="honicel_work_orders"
-                      fields={['title', 'status', 'priority', 'asset_id', 'assignee_id', 'pm_id', 'created_at']}
-                      humanHeaders={['Judul', 'Status', 'Prioritas', 'ID Asset', 'ID Pegawai', 'ID PM', 'Tanggal Dibuat']}
+                      fields={['title', 'repair_type', 'status', 'priority', 'asset_id', 'assignee_id', 'pm_id', 'created_at']}
+                      humanHeaders={['Judul', 'Tipe Perbaikan', 'Status', 'Prioritas', 'ID Asset', 'ID Pegawai', 'ID PM', 'Tanggal Dibuat']}
                       type="work_order"
                       onImport={handleImportWorkOrders}
                     />
@@ -1105,8 +1107,8 @@ export default function App() {
                   <CSVImportExport
                     data={assets}
                     fileName="honicel_assets"
-                    fields={['name', 'category', 'location', 'status']}
-                    humanHeaders={['Nama', 'Kategori', 'Lokasi', 'Status']}
+                    fields={['name', 'asset_code', 'category', 'location', 'status', 'parent_id']}
+                    humanHeaders={['Nama', 'Kode Asset', 'Kategori', 'Lokasi', 'Status', 'Parent ID']}
                     type="asset"
                     onImport={handleImportAssets}
                   />

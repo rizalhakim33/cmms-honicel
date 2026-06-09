@@ -28,13 +28,13 @@ export const CSVImportExport: React.FC<Props> = ({
     let headersLine = fields.join(',');
     let demoRow = '';
     if (type === 'asset') {
-      demoRow = 'Mesin Glue Spreader B2,glue_spreader,Sektor A Blok 4,operational';
+      demoRow = 'Mesin Glue Spreader B2,MCH-001,glue_spreader,Sektor A Blok 4,operational,';
     } else if (type === 'labor') {
       demoRow = 'Supriadi Hermawan,Mechanical Senior,technician';
     } else if (type === 'sparepart') {
       demoRow = 'Bearing NSK 6204 ZZ,25,145000,3000';
     } else if (type === 'work_order') {
-      demoRow = 'Pemeriksaan Rutin,open,medium,d290f1ee-6c54-4b01-90e6-d701748f0851,b560f1ea-1c51-4122-9011-e121748f0111,,';
+      demoRow = 'Pemeriksaan Rutin,Inspection,open,medium,d290f1ee-6c54-4b01-90e6-d701748f0851,b560f1ea-1c51-4122-9011-e121748f0111,,';
     }
     return `${headersLine}\n${demoRow}`;
   };
@@ -228,6 +228,11 @@ export const CSVImportExport: React.FC<Props> = ({
           } else if (type === 'work_order') {
             if (!record.title) throw new Error(`Baris ke-${rowNum}: Judul Work Order tidak boleh kosong!`);
             
+            const validRepairTypes = ['Repair', 'Setting', 'Kalibrasi', 'Inspection'];
+            if (record.repair_type && !validRepairTypes.includes(record.repair_type)) {
+              throw new Error(`Baris ke-${rowNum}: Tipe Perbaikan harus salah satu dari: Repair, Setting, Kalibrasi, Inspection!`);
+            }
+
             const validStatus = ['open', 'in_progress', 'completed'];
             if (record.status && !validStatus.includes(record.status.toLowerCase())) {
               throw new Error(`Baris ke-${rowNum}: Status harus "open", "in_progress", atau "completed"!`);
