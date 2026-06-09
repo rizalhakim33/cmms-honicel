@@ -6,6 +6,8 @@ export type AssetCategory = string;
 export interface Asset {
   id: string;
   name: string;
+  asset_code?: string | null;
+  parent_id?: string | null;
   category: string;
   location: string;
   technical_specs: Record<string, any>;
@@ -13,6 +15,7 @@ export interface Asset {
   status: string;
   created_at: string;
   updated_at: string;
+  subAssets?: Asset[];
 }
 
 export interface LaborProfile {
@@ -22,12 +25,15 @@ export interface LaborProfile {
   role: string;
 }
 
+export type RepairType = 'Repair' | 'Setting' | 'Kalibrasi' | 'Inspection';
+
 export interface WorkOrder {
   id: string;
   asset_id: string;
   pm_id: string | null;
   title: string;
   description: string | null;
+  repair_type?: RepairType | null;
   status: WOStatus;
   priority: WOPriority;
   assignee_id: string | null;

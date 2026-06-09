@@ -3,6 +3,8 @@
 -- 1. Assets Table (Mesin & Peralatan)
 create table if not exists assets (
   id uuid default gen_random_uuid() primary key,
+  parent_id uuid references assets(id) on delete set null,
+  asset_code text,
   name text not null,
   category text,
   location text not null,
@@ -42,6 +44,7 @@ create table if not exists work_orders (
   pm_id uuid references pm_schedules(id) on delete set null,
   title text not null,
   description text,
+  repair_type text,
   status text default 'open',
   priority text default 'medium',
   assignee_id uuid references labor_profiles(id) on delete set null,
@@ -51,9 +54,12 @@ create table if not exists work_orders (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Alter existing work_orders to add new sparepart usage columns safely
+-- Alter existing tables to add new columns safely
 alter table work_orders add column if not exists replaced_sparepart_name text;
 alter table work_orders add column if not exists replaced_sparepart_qty integer default 1 check (replaced_sparepart_qty > 0);
+alter table assets add column if not exists parent_id uuid references assets(id) on delete set null;
+alter table assets add column if not exists asset_code text;
+alter table work_orders add column if not exists repair_type text;
 
 -- Drop auth.users constraint so CSV imports work
 alter table labor_profiles drop constraint if exists labor_profiles_id_fkey;
@@ -127,6 +133,9 @@ drop policy if exists "Read assets" on assets;
 drop policy if exists "Manage assets" on assets;
 drop policy if exists "Read spareparts" on spareparts;
 drop policy if exists "Manage spareparts" on spareparts;
+drop policy if exists "Insert spareparts" on spareparts;
+drop policy if exists "Update spareparts" on spareparts;
+drop policy if exists "Delete spareparts" on spareparts;
 drop policy if exists "Read installed parts" on installed_spareparts;
 drop policy if exists "Insert installed parts" on installed_spareparts;
 drop policy if exists "Manage installed parts" on installed_spareparts;

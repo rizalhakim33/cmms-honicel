@@ -67,6 +67,12 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
                 <p className="text-[10px] font-mono text-slate-400">#{wo.id.slice(0, 8)}</p>
                 
                 <div className="mt-4 space-y-2">
+                  {wo.repair_type && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <span className="font-bold w-16">Type:</span> 
+                      <span className="truncate bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold text-[9px] uppercase tracking-wider">{wo.repair_type}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-slate-600">
                     <span className="font-bold w-16">Asset:</span> 
                     <span className="truncate">{wo.asset?.name || 'Unassigned'}</span>
@@ -104,6 +110,9 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
             </th>
             <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('priority')}>
               <div className="flex items-center gap-1.5">Priority <SortIcon field="priority" /></div>
+            </th>
+            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('repair_type')}>
+              <div className="flex items-center gap-1.5">Type <SortIcon field={'repair_type' as any} /></div>
             </th>
             <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('asset_id')}>
               <div className="flex items-center gap-1.5">Asset <SortIcon field="asset_id" /></div>
@@ -159,6 +168,13 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColors[wo.priority]}`}>
                     {wo.priority}
                   </span>
+                </td>
+                <td className="px-6 py-4">
+                  {wo.repair_type ? (
+                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider">{wo.repair_type}</span>
+                  ) : (
+                     <span className="text-slate-300 text-xs">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-col">

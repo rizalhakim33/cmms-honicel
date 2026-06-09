@@ -119,15 +119,37 @@ export const EntityFormModal: React.FC<Props> = ({
 
             {type === 'asset' && (
               <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Asset Code (Manual)</label>
+                    <input 
+                      value={formData.asset_code || ''}
+                      onChange={e => handleChange('asset_code', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono uppercase"
+                      placeholder="e.g. MCH-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Asset Name</label>
+                    <input 
+                      required
+                      value={formData.name || ''}
+                      onChange={e => handleChange('name', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      placeholder="e.g. CNC Machine A1"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Asset Name</label>
-                  <input 
-                    required
-                    value={formData.name || ''}
-                    onChange={e => handleChange('name', e.target.value)}
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Parent Asset (For Sub-Assets)</label>
+                  <select 
+                    value={formData.parent_id || ''}
+                    onChange={e => handleChange('parent_id', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="e.g. CNC Machine A1"
-                  />
+                  >
+                    <option value="">-- No Parent (Main Asset) --</option>
+                    {assets.filter(a => a.id !== entity?.id).map(a => <option key={a.id} value={a.id}>{a.name} {a.asset_code ? `(${a.asset_code})` : ''}</option>)}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -201,9 +223,25 @@ export const EntityFormModal: React.FC<Props> = ({
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     >
                       <option value="">Select Asset</option>
-                      {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      {assets.map(a => <option key={a.id} value={a.id}>{a.name} {a.asset_code ? `(${a.asset_code})` : ''}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Jenis Perbaikan</label>
+                    <select 
+                      value={formData.repair_type || ''}
+                      onChange={e => handleChange('repair_type', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    >
+                      <option value="">-- Pilih Jenis --</option>
+                      <option value="Repair">Repair</option>
+                      <option value="Setting">Setting</option>
+                      <option value="Kalibrasi">Kalibrasi</option>
+                      <option value="Inspection">Inspection</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Assignee</label>
                     <select 

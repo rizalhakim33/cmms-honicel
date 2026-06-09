@@ -11,12 +11,109 @@ interface Props {
 }
 
 export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode = 'grid' }) => {
-  const { sortedItems, sortField, sortDirection, handleSort } = useSort(assets, 'name', 'asc');
+  const topLevelAssets = assets.filter(a => !a.parent_id);
+  const { sortedItems, sortField, sortDirection, handleSort } = useSort(topLevelAssets, 'name', 'asc');
 
   const SortIcon = ({ field }: { field: keyof Asset }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
     return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />;
   };
+
+  const getChildren = (parentId: string) => {
+    return assets.filter(a => a.parent_id === parentId);
+  };
+
+  const renderGridItem = (asset: Asset, isChild = false) => (
+    <div key={asset.id} className={`bg-white rounded-xl border ${isChild ? 'border-dashed border-slate-300 ml-8' : 'border-slate-200'} shadow-sm overflow-hidden group hover:border-blue-500 transition-all flex flex-col`}>
+      <div className="p-5 border-b border-slate-50 flex justify-between items-start">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+            <Factory size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              {asset.name} 
+              {isChild && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider text-slate-500 font-bold">Sub Asset</span>}
+            </h3>
+            <p className="text-[10px] text-slate-400 font-mono tracking-widest font-bold">
+              {asset.asset_code ? `${asset.asset_code} • ` : ''}{asset.category.toUpperCase()}
+            </p>
+          </div>
+        </div>
+        <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+          asset.status === 'operational' ? 'bg-emerald-50 text-emerald-600' : 
+          asset.status === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+        }`}>
+          {asset.status}
+        </div>
+      </div>
+      
+      <div className="p-5 space-y-3 flex-1">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <MapPin size={14} className="text-slate-400" />
+          <span>{asset.location}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <Cpu size={14} className="text-slate-400" />
+          <span className="truncate">Specs: {JSON.stringify(asset.technical_specs).slice(0, 30)}...</span>
+        </div>
+      </div>
+
+      <div className="px-5 py-3 bg-slate-50 flex justify-between items-center text-[10px]">
+        <div className="flex gap-4">
+          <button onClick={() => onEdit?.(asset)} className="text-blue-600 font-bold hover:underline cursor-pointer uppercase">Edit</button>
+          <button onClick={() => onDelete?.(asset.id)} className="text-rose-600 font-bold hover:underline cursor-pointer uppercase">Delete</button>
+        </div>
+        <span className="text-slate-400">ID: {asset.id.slice(0, 8)}</span>
+      </div>
+    </div>
+  );
+
+  const renderListItem = (asset: Asset, isChild = false) => (
+    <tr key={asset.id} className={`hover:bg-slate-50 transition-colors group ${isChild ? 'bg-slate-50/50' : ''}`}>
+      <td className="px-6 py-4">
+        <div className={`flex items-center gap-3 ${isChild ? 'pl-8 relative' : ''}`}>
+          {isChild && <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 border-b-2 border-l-2 border-slate-300 h-8 -mt-4 rounded-bl-lg" />}
+          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 shrink-0">
+            <Factory size={16} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors flex items-center gap-2">
+              {asset.name}
+              {asset.asset_code && <span className="font-mono text-xs text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">{asset.asset_code}</span>}
+              {isChild && <span className="bg-slate-200 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider text-slate-500 font-bold">Sub</span>}
+            </h3>
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{asset.category}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          asset.status === 'operational' ? 'bg-emerald-50 text-emerald-600' : 
+          asset.status === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
+        }`}>
+          {asset.status}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <MapPin size={14} className="text-slate-400" />
+          <span>{asset.location}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span className="text-xs text-slate-500 font-mono truncate block max-w-[200px]">
+          {JSON.stringify(asset.technical_specs).slice(0, 30)}...
+        </span>
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onEdit?.(asset)} className="text-blue-600 text-[10px] font-bold uppercase hover:underline">Edit</button>
+          <button onClick={() => onDelete?.(asset.id)} className="text-rose-600 text-[10px] font-bold uppercase hover:underline">Delete</button>
+        </div>
+      </td>
+    </tr>
+  );
 
   if (viewMode === 'list') {
     return (
@@ -46,44 +143,10 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode 
               </tr>
             ) : (
               sortedItems.map((asset) => (
-                <tr key={asset.id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600">
-                        <Factory size={16} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{asset.name}</h3>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{asset.category}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      asset.status === 'operational' ? 'bg-emerald-50 text-emerald-600' : 
-                      asset.status === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {asset.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-xs text-slate-600">
-                      <MapPin size={14} className="text-slate-400" />
-                      <span>{asset.location}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-xs text-slate-500 font-mono truncate block max-w-[200px]">
-                      {JSON.stringify(asset.technical_specs).slice(0, 30)}...
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onEdit?.(asset)} className="text-blue-600 text-[10px] font-bold uppercase hover:underline">Edit</button>
-                      <button onClick={() => onDelete?.(asset.id)} className="text-rose-600 text-[10px] font-bold uppercase hover:underline">Delete</button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={asset.id}>
+                  {renderListItem(asset)}
+                  {getChildren(asset.id).map(child => renderListItem(child, true))}
+                </React.Fragment>
               ))
             )}
           </tbody>
@@ -93,50 +156,20 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="flex flex-col gap-6">
       {sortedItems.length === 0 ? (
         <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
           No assets registered in database.
         </div>
       ) : (
         sortedItems.map((asset) => (
-          <div key={asset.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden group hover:border-blue-500 transition-all flex flex-col">
-            <div className="p-5 border-b border-slate-50 flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                  <Factory size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800">{asset.name}</h3>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{asset.category}</p>
-                </div>
+          <div key={asset.id} className="flex flex-col gap-4">
+            {renderGridItem(asset)}
+            {getChildren(asset.id).length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                {getChildren(asset.id).map(child => renderGridItem(child, true))}
               </div>
-              <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                asset.status === 'operational' ? 'bg-emerald-50 text-emerald-600' : 
-                asset.status === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
-              }`}>
-                {asset.status}
-              </div>
-            </div>
-            
-            <div className="p-5 space-y-3 flex-1">
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <MapPin size={14} className="text-slate-400" />
-                <span>{asset.location}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <Cpu size={14} className="text-slate-400" />
-                <span className="truncate">Specs: {JSON.stringify(asset.technical_specs).slice(0, 30)}...</span>
-              </div>
-            </div>
-
-            <div className="px-5 py-3 bg-slate-50 flex justify-between items-center text-[10px]">
-              <div className="flex gap-4">
-                <button onClick={() => onEdit?.(asset)} className="text-blue-600 font-bold hover:underline cursor-pointer uppercase">Edit</button>
-                <button onClick={() => onDelete?.(asset.id)} className="text-rose-600 font-bold hover:underline cursor-pointer uppercase">Delete</button>
-              </div>
-              <span className="text-slate-400">ID: {asset.id.slice(0, 8)}</span>
-            </div>
+            )}
           </div>
         ))
       )}
