@@ -36,7 +36,7 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, viewMode 
               {isChild && <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider text-slate-500 font-bold">Sub Asset</span>}
             </h3>
             <p className="text-[10px] text-slate-400 font-mono tracking-widest font-bold">
-              {asset.asset_code ? `${asset.asset_code} • ` : ''}{asset.category.toUpperCase()}
+              {asset.asset_code ? `${asset.asset_code} • ` : ''}{(asset.category || 'other').toUpperCase()}
             </p>
           </div>
         </div>
