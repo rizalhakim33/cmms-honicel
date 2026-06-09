@@ -377,20 +377,44 @@ export default function App() {
   const handleImportAssets = async (newAssets: any[]) => {
     try {
       const withIds = newAssets.map(item => ({
+        ...item,
         id: crypto.randomUUID(),
-        name: item.name,
-        asset_code: item.asset_code || null,
-        parent_id: item.parent_id || null,
-        category: item.category || 'other',
-        location: item.location,
-        status: item.status || 'operational',
-        technical_specs: item.technical_specs || {},
-        qr_code_data: item.qr_code_data || `HONICEL-${item.name.toUpperCase().replace(/\s+/g, '-')}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       }));
 
-      const { error } = await supabase.from('assets').insert(withIds);
+      const finalAssets = withIds.map(item => {
+        let pId = null;
+        const codeToFind = item.parent_code || item.parent_id;
+
+        if (codeToFind) {
+          const parentInBatch = withIds.find(p => p.asset_code === codeToFind);
+          if (parentInBatch) {
+            pId = parentInBatch.id;
+          } else {
+            const existingParent = assets.find(p => p.asset_code === codeToFind);
+            if (existingParent) {
+              pId = existingParent.id;
+            } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(codeToFind)) {
+              pId = codeToFind;
+            }
+          }
+        }
+
+        return {
+          id: item.id,
+          name: item.name,
+          asset_code: item.asset_code || null,
+          parent_id: pId,
+          category: item.category || 'other',
+          location: item.location,
+          status: item.status || 'operational',
+          technical_specs: item.technical_specs || {},
+          qr_code_data: item.qr_code_data || `HONICEL-${(item.name || '').toUpperCase().replace(/\s+/g, '-')}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
+
+      const { error } = await supabase.from('assets').insert(finalAssets);
       if (error) {
         throw new Error(error.message || "Gagal mengimpor Aset ke database");
       }
@@ -1105,10 +1129,16 @@ export default function App() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <CSVImportExport
-                    data={assets}
+                    data={assets.map(a => {
+                      const parent = assets.find(p => p.id === a.parent_id);
+                      return {
+                        ...a,
+                        parent_code: parent?.asset_code || ''
+                      }
+                    })}
                     fileName="honicel_assets"
-                    fields={['name', 'asset_code', 'category', 'location', 'status', 'parent_id']}
-                    humanHeaders={['Nama', 'Kode Asset', 'Kategori', 'Lokasi', 'Status', 'Parent ID']}
+                    fields={['name', 'asset_code', 'category', 'location', 'status', 'parent_code']}
+                    humanHeaders={['Nama', 'Kode Asset', 'Kategori', 'Lokasi', 'Status', 'Kode Parent']}
                     type="asset"
                     onImport={handleImportAssets}
                   />
