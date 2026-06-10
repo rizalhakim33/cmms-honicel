@@ -457,6 +457,7 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
               <option value="tool">Operasional & Alat Kerja</option>
             </select>
           </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto p-0">
