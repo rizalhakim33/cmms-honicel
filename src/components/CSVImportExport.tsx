@@ -140,12 +140,13 @@ export const CSVImportExport: React.FC<Props> = ({
           // Map columns to record based on headers
           const record: any = {};
           headerCols.forEach((head, idx) => {
-            if (idx < cols.length) {
+            if (head && idx < cols.length) {
               let value: any = cols[idx];
               // strip surrounding quotes if clean
               if (value.startsWith('"') && value.endsWith('"')) {
                 value = value.slice(1, -1);
               }
+              if (value.trim() === '') value = null;
               record[head] = value;
             }
           });
