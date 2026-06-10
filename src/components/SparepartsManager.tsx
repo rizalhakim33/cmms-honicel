@@ -50,6 +50,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
   // Fields
   const [name, setName] = useState('');
   const [stock, setStock] = useState<number>(0);
+  const [minStock, setMinStock] = useState<number>(1);
   const [price, setPrice] = useState<number>(0);
   const [lifetimeHours, setLifetimeHours] = useState<number>(2000);
 
@@ -114,6 +115,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
       const withoutIds = Array.from(uniqueSpMap.values()).map(item => ({
         name: item.name,
         stock: item.stock || 0,
+        min_stock: item.min_stock || 1,
         price: item.price || 0,
         estimated_lifetime_hours: item.estimated_lifetime_hours || 2000
       }));
@@ -135,6 +137,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
     setSelectedId(null);
     setName('');
     setStock(10);
+    setMinStock(1);
     setPrice(150000);
     setLifetimeHours(2000);
     setError(null);
@@ -147,6 +150,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
     setSelectedId(sp.id);
     setName(sp.name);
     setStock(sp.stock);
+    setMinStock(sp.min_stock || 1);
     setPrice(sp.price);
     setLifetimeHours(sp.estimated_lifetime_hours);
     setError(null);
@@ -170,6 +174,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
       const payload = {
         name: name.trim(),
         stock: Math.max(0, stock),
+        min_stock: Math.max(0, minStock),
         price: Math.max(0, price),
         estimated_lifetime_hours: Math.max(1, lifetimeHours),
         updated_at: new Date().toISOString()
@@ -202,6 +207,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
           id: crypto.randomUUID(),
           name: name.trim(),
           stock: Math.max(0, stock),
+          min_stock: Math.max(0, minStock),
           price: Math.max(0, price),
           estimated_lifetime_hours: Math.max(1, lifetimeHours),
           created_at: new Date().toISOString(),
@@ -215,6 +221,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
             ...fallbackList[idx],
             name: name.trim(),
             stock: Math.max(0, stock),
+            min_stock: Math.max(0, minStock),
             price: Math.max(0, price),
             estimated_lifetime_hours: Math.max(1, lifetimeHours),
             updated_at: new Date().toISOString()
@@ -435,10 +442,13 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
 
         <div className="flex flex-wrap items-center gap-3">
           <CSVImportExport
-            data={spareparts}
+            data={spareparts.map(sp => ({
+              ...sp,
+              status: sp.stock < (sp.min_stock || 1) ? 'ORDER' : 'AMAN'
+            }))}
             fileName="honicel_spareparts"
-            fields={['name', 'stock', 'price', 'estimated_lifetime_hours']}
-            humanHeaders={['Nama Suku Cadang', 'Stok Warehouse', 'Harga Premium', 'Masa Pakai']}
+            fields={['name', 'stock', 'min_stock', 'price', 'estimated_lifetime_hours', 'status']}
+            humanHeaders={['Nama Suku Cadang', 'Stok Warehouse', 'Minimal Stok', 'Harga Premium', 'Masa Pakai', 'Status']}
             type="sparepart"
             onImport={handleImportSpareparts}
           />
@@ -531,7 +541,13 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                       <div className="flex items-center gap-1.5">Nama Suku Cadang <SortIconSp field="name" /></div>
                     </th>
                     <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('stock')}>
-                      <div className="flex items-center gap-1.5">Jumlah Stok (Warehouse) <SortIconSp field="stock" /></div>
+                      <div className="flex items-center gap-1.5">Jumlah Stok <SortIconSp field="stock" /></div>
+                    </th>
+                    <th className="px-6 py-3.5">
+                      Min Stock
+                    </th>
+                    <th className="px-6 py-3.5">
+                      Status Stok
                     </th>
                     <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('price')}>
                       <div className="flex items-center gap-1.5">Harga Standard <SortIconSp field="price" /></div>
@@ -543,7 +559,9 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                  {paginatedSpareparts.map((sp) => (
+                  {paginatedSpareparts.map((sp) => {
+                    const isOrder = sp.stock < (sp.min_stock || 1);
+                    return (
                     <tr key={sp.id} className={`hover:bg-slate-50/50 transition-all ${selectedRows.has(sp.id) ? 'bg-blue-50/30' : ''}`}>
                       <td className="px-6 py-4">
                         <input 
@@ -558,11 +576,19 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                           sp.stock === 0 
                             ? 'bg-rose-50 text-rose-600 border border-rose-100' 
-                            : sp.stock < 5 
+                            : isOrder
                             ? 'bg-amber-50 text-amber-600 border border-amber-100' 
                             : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                         }`}>
                           {sp.stock} units
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-bold text-slate-600 border-none">
+                        {sp.min_stock || 1} units
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${isOrder ? 'bg-rose-50 text-rose-600 border-rose-200 uppercase tracking-widest' : 'bg-emerald-50 text-emerald-600 border-emerald-200 tracking-widest uppercase'}`}>
+                          {isOrder ? 'Order' : 'Aman'}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-mono text-xs">{formatRupiah(sp.price)}</td>
@@ -586,12 +612,15 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-                {paginatedSpareparts.map((sp) => (
+                {paginatedSpareparts.map((sp) => {
+                  const isOrder = sp.stock < (sp.min_stock || 1);
+                  return (
                   <div key={sp.id} className={`bg-white rounded-xl border p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group ${selectedRows.has(sp.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'}`}>
                     <div className="absolute top-4 right-4 z-10 w-full flex justify-end pr-8">
                        <input 
@@ -605,18 +634,20 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                           <Package size={20} />
                        </div>
-                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          sp.stock === 0 
+                       <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold ${
+                          isOrder 
                             ? 'bg-rose-50 text-rose-600 border border-rose-100' 
-                            : sp.stock < 5 
-                            ? 'bg-amber-50 text-amber-600 border border-amber-100' 
                             : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                         }`}>
-                          {sp.stock} In Stock
+                          {isOrder ? 'Order' : 'Aman'}
                         </span>
                      </div>
                      <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors mb-2">{sp.name}</h3>
                      <div className="space-y-2 mb-4 w-full">
+                       <div className="flex items-center gap-2 text-xs text-slate-600">
+                         <span className="font-bold w-20">Stock / Min:</span>
+                         <span className="font-mono text-slate-700">{sp.stock} units / {sp.min_stock || 1} units</span>
+                       </div>
                        <div className="flex items-center gap-2 text-xs text-slate-600">
                          <span className="font-bold w-20">Price:</span>
                          <span className="font-mono text-slate-700">{formatRupiah(sp.price)}</span>
@@ -631,7 +662,8 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                         <button onClick={() => handleDelete(sp.id, sp.name)} className="text-[10px] font-bold uppercase text-rose-600 hover:underline">Delete</button>
                      </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -864,16 +896,29 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Jumlah Stok di Gudang</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  required
-                  value={stock}
-                  onChange={(e) => setStock(parseInt(e.target.value) || 0)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Jumlah Stok di Gudang</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    required
+                    value={stock}
+                    onChange={(e) => setStock(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Minimal Stok</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    required
+                    value={minStock}
+                    onChange={(e) => setMinStock(parseInt(e.target.value) || 1)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
               </div>
 
               <div>

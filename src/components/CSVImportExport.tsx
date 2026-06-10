@@ -32,7 +32,7 @@ export const CSVImportExport: React.FC<Props> = ({
     } else if (type === 'labor') {
       demoRow = 'Supriadi Hermawan,Mechanical Senior,technician';
     } else if (type === 'sparepart') {
-      demoRow = 'Bearing NSK 6204 ZZ,25,145000,3000';
+      demoRow = 'Bearing NSK 6204 ZZ,25,5,145000,3000,AMAN';
     } else if (type === 'work_order') {
       demoRow = 'Pemeriksaan Rutin,Inspection,open,medium,d290f1ee-6c54-4b01-90e6-d701748f0851,b560f1ea-1c51-4122-9011-e121748f0111,,';
     }
@@ -191,6 +191,13 @@ export const CSVImportExport: React.FC<Props> = ({
               throw new Error(`Baris ke-${rowNum}: Jumlah stok "${record.stock}" harus berupa angka bulat >= 0 (CHECK stock >= 0)!`);
             }
             record.stock = stockNum;
+
+            const minStockStr = (record.min_stock || '1').toString().replace(/[^0-9]/g, '');
+            const minStockNum = parseInt(minStockStr || '1');
+            if (isNaN(minStockNum) || minStockNum < 0) {
+              throw new Error(`Baris ke-${rowNum}: Minimal stok "${record.min_stock}" harus berupa angka bulat >= 0!`);
+            }
+            record.min_stock = minStockNum;
 
             const priceStr = (record.price || '0').toString().replace(/[^0-9]/g, '');
             const priceNum = parseInt(priceStr || '0');

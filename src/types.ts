@@ -67,6 +67,7 @@ export interface Sparepart {
   id: string;
   name: string;
   stock: number;
+  min_stock: number;
   price: number;
   estimated_lifetime_hours: number;
   created_at: string;
