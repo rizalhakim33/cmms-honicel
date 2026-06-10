@@ -496,7 +496,50 @@ export default function App() {
     fetchData();
   };
 
-  // Sync PMs via Client-side Logic
+  const handleBulkDelete = async (ids: string[], type: string) => {
+    if (!confirm(`Are you sure you want to delete ${ids.length} ${type}s?`)) return;
+
+    if (type === 'work_order') {
+      try {
+        await supabase.from('installed_spareparts').delete().in('work_order_id', ids);
+        await supabase.from('cash_flows').delete().in('reference_id', ids);
+
+        const localInst = localStorage.getItem('honicel_installed_spareparts');
+        if (localInst) {
+          const fallbackInst = JSON.parse(localInst).filter((ip: any) => !ids.includes(ip.work_order_id));
+          localStorage.setItem('honicel_installed_spareparts', JSON.stringify(fallbackInst));
+        }
+        const localCash = localStorage.getItem('honicel_cashflows');
+        if (localCash) {
+          const fallbackCash = JSON.parse(localCash).filter((cf: any) => !ids.includes(cf.reference_id));
+          localStorage.setItem('honicel_cashflows', JSON.stringify(fallbackCash));
+        }
+      } catch (err) {
+        console.warn("Failed to delete related items", err);
+      }
+    } else if (type === 'labor') {
+      for (const id of ids) {
+        try {
+          await supabaseAdminAuth.auth.admin.deleteUser(id);
+        } catch (err) {
+          // Ignored
+        }
+      }
+    }
+
+    const table = type === 'asset' ? 'assets' : 
+                  type === 'work_order' ? 'work_orders' : 
+                  type === 'labor' ? 'labor_profiles' : 'pm_schedules';
+                  
+    const { error } = await supabase.from(table).delete().in('id', ids);
+    if (error) {
+      alert(`Gagal menghapus: ${error.message}`);
+      console.error(error);
+    }
+    
+    fetchData();
+  };
+
   const handleSyncPM = async () => {
     try {
       setLoading(true);
@@ -598,10 +641,23 @@ export default function App() {
         if (!validAssetIds.has(item.asset_id)) {
           throw new Error(`Data CSV baris ${idx + 1} gagal: Asset ID '${item.asset_id}' tidak ditemukan di database.`);
         }
+        
+        let safeAssignee = item.assignee_id ? String(item.assignee_id).trim() : null;
+        if (safeAssignee && !validLaborIds.has(safeAssignee)) { safeAssignee = null; }
+        
+        let safePm = item.pm_id ? String(item.pm_id).trim() : null;
+        if (safePm && !validPmIds.has(safePm)) { safePm = null; }
+
         return {
-          ...item,
-          assignee_id: item.assignee_id && validLaborIds.has(item.assignee_id) ? item.assignee_id : null,
-          pm_id: item.pm_id && validPmIds.has(item.pm_id) ? item.pm_id : null,
+          title: item.title,
+          description: item.description || null,
+          repair_type: item.repair_type || null,
+          priority: item.priority || 'medium',
+          status: item.status || 'open',
+          asset_id: item.asset_id,
+          assignee_id: safeAssignee,
+          pm_id: safePm,
+          // Do not spread ...item to prevent invalid/empty columns being sent to Supabase
         };
       });
 
@@ -1130,6 +1186,7 @@ export default function App() {
                   workOrders={getFilteredWorkOrders()} 
                   onEdit={(wo) => openModal('work_order', wo)}
                   onDelete={isSupervisor ? (id) => handleDelete(id, 'work_order') : undefined}
+                  onBulkDelete={isSupervisor ? (ids) => handleBulkDelete(ids, 'work_order') : undefined}
                   viewMode={viewMode}
                 />
               </div>
@@ -1172,6 +1229,7 @@ export default function App() {
                 assets={assets} 
                 onEdit={isSupervisor ? (a) => openModal('asset', a) : undefined}
                 onDelete={isSupervisor ? (id) => handleDelete(id, 'asset') : undefined}
+                onBulkDelete={isSupervisor ? (ids) => handleBulkDelete(ids, 'asset') : undefined}
                 viewMode={viewMode}
               />
             </div>
@@ -1203,6 +1261,7 @@ export default function App() {
                 schedules={pms} 
                 onEdit={isSupervisor ? (pm) => openModal('pm_schedule', pm) : undefined}
                 onDelete={isSupervisor ? (id) => handleDelete(id, 'pm_schedule') : undefined}
+                onBulkDelete={isSupervisor ? (ids) => handleBulkDelete(ids, 'pm_schedule') : undefined}
                 viewMode={viewMode}
               />
             </div>
@@ -1246,6 +1305,7 @@ export default function App() {
                 profiles={labor} 
                 onEdit={userProfile?.role === 'admin' ? (l) => openModal('labor', l) : undefined}
                 onDelete={userProfile?.role === 'admin' ? (id) => handleDelete(id, 'labor') : undefined}
+                onBulkDelete={userProfile?.role === 'admin' ? (ids) => handleBulkDelete(ids, 'labor') : undefined}
                 viewMode={viewMode}
               />
             </div>
