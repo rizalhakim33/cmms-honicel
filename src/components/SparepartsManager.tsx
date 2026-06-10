@@ -444,7 +444,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
           <CSVImportExport
             data={spareparts.map(sp => ({
               ...sp,
-              status: sp.stock < (sp.min_stock || 1) ? 'ORDER' : 'AMAN'
+              status: sp.stock <= (sp.min_stock || 1) ? 'ORDER' : 'AMAN'
             }))}
             fileName="honicel_spareparts"
             fields={['name', 'stock', 'min_stock', 'price', 'estimated_lifetime_hours', 'status']}
@@ -560,7 +560,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                   {paginatedSpareparts.map((sp) => {
-                    const isOrder = sp.stock < (sp.min_stock || 1);
+                    const isOrder = sp.stock <= (sp.min_stock || 1);
                     return (
                     <tr key={sp.id} className={`hover:bg-slate-50/50 transition-all ${selectedRows.has(sp.id) ? 'bg-blue-50/30' : ''}`}>
                       <td className="px-6 py-4">
@@ -619,7 +619,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
                 {paginatedSpareparts.map((sp) => {
-                  const isOrder = sp.stock < (sp.min_stock || 1);
+                  const isOrder = sp.stock <= (sp.min_stock || 1);
                   return (
                   <div key={sp.id} className={`bg-white rounded-xl border p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group ${selectedRows.has(sp.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'}`}>
                     <div className="absolute top-4 right-4 z-10 w-full flex justify-end pr-8">

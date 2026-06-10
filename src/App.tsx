@@ -891,7 +891,7 @@ export default function App() {
                 />
                 <KPICard 
                   label="Critical Spareparts" 
-                  value={spareparts.filter(s => s.stock < (s.min_stock || 1)).length} 
+                  value={spareparts.filter(s => s.stock <= (s.min_stock || 1)).length} 
                   icon={AlertCircle} 
                   colorClass="text-rose-600"
                 />
