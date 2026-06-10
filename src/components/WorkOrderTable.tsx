@@ -1,6 +1,6 @@
 import React from 'react';
 import { WorkOrder, WOPriority, WOStatus } from '../types';
-import { Circle, Clock, CheckCircle2, AlertTriangle, User, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Circle, Clock, CheckCircle2, AlertTriangle, User, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2 } from 'lucide-react';
 import { useSort } from '../hooks/useSort';
 
 const priorityColors: Record<WOPriority, string> = {
@@ -86,8 +86,14 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
               <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
                  <span className="text-[10px] text-slate-400 font-mono">{new Date(wo.created_at).toLocaleDateString()}</span>
                  <div className="flex gap-2">
-                    <button onClick={() => onEdit?.(wo)} className="text-blue-600 text-[10px] font-bold uppercase hover:underline">Edit</button>
-                    {onDelete && <button onClick={() => onDelete(wo.id)} className="text-rose-600 text-[10px] font-bold uppercase hover:underline">Delete</button>}
+                    <button onClick={() => onEdit?.(wo)} className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-blue-600 transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    {onDelete && (
+                      <button onClick={() => onDelete(wo.id)} className="p-1 hover:bg-rose-50 rounded text-slate-500 hover:text-rose-600 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                  </div>
               </div>
             </div>
@@ -99,37 +105,37 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-collapse min-w-[800px]">
         <thead className="sticky top-0 bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
           <tr>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
+            <th className="w-24 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
               <div className="flex items-center gap-1.5">Status <SortIcon field="status" /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('title')}>
+            <th className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('title')}>
               <div className="flex items-center gap-1.5">Work Order <SortIcon field="title" /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('priority')}>
+            <th className="w-20 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('priority')}>
               <div className="flex items-center gap-1.5">Priority <SortIcon field="priority" /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('repair_type')}>
+            <th className="w-24 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('repair_type')}>
               <div className="flex items-center gap-1.5">Type <SortIcon field={'repair_type' as any} /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('asset_id')}>
+            <th className="w-32 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('asset_id')}>
               <div className="flex items-center gap-1.5">Asset <SortIcon field="asset_id" /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('assignee_id')}>
+            <th className="w-32 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('assignee_id')}>
               <div className="flex items-center gap-1.5">Assignee <SortIcon field="assignee_id" /></div>
             </th>
-            <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('created_at')}>
+            <th className="w-24 px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('created_at')}>
               <div className="flex items-center gap-1.5">Created <SortIcon field="created_at" /></div>
             </th>
-            <th className="px-6 py-4 text-right">Actions</th>
+            <th className="w-16 px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
           {sortedItems.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm italic">
+              <td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-sm italic">
                 No active work orders found.
               </td>
             </tr>
@@ -139,8 +145,8 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
                 key={wo.id} 
                 className="group hover:bg-slate-50 transition-colors"
               >
-                <td className="px-6 py-4">
-                  <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider
+                <td className="px-4 py-3">
+                  <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider
                     ${wo.status === 'open' ? 'text-blue-600' : ''}
                     ${wo.status === 'in_progress' ? 'text-amber-600' : ''}
                     ${wo.status === 'completed' ? 'text-emerald-600' : ''}
@@ -149,14 +155,14 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
                     {wo.status.replace('_', ' ')}
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
+                <td className="px-4 py-3">
+                  <div className="flex flex-col max-w-[200px]">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                      <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                         {wo.title}
                       </span>
                       {wo.pm_id && (
-                        <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        <span className="text-[9px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">
                           PM
                         </span>
                       )}
@@ -164,39 +170,45 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
                     <span className="text-[10px] font-mono text-slate-400">#{wo.id.slice(0, 8)}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColors[wo.priority]}`}>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap ${priorityColors[wo.priority]}`}>
                     {wo.priority}
                   </span>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3">
                   {wo.repair_type ? (
-                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider">{wo.repair_type}</span>
+                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-[10px] uppercase tracking-wider truncate block w-full">{wo.repair_type}</span>
                   ) : (
                      <span className="text-slate-300 text-xs">-</span>
                   )}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-700 font-bold">{wo.asset?.name || 'Unassigned'}</span>
-                    <span className="text-[10px] text-slate-400">{wo.asset?.location}</span>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col max-w-[120px]">
+                    <span className="text-xs text-slate-700 font-bold truncate">{wo.asset?.name || 'Unassigned'}</span>
+                    <span className="text-[10px] text-slate-400 truncate">{wo.asset?.location}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border border-slate-300">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2 max-w-[120px]">
+                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border border-slate-300 shrink-0">
                       <User className="w-3 h-3 text-slate-500" />
                     </div>
-                    <span className="text-xs text-slate-600 font-medium">{wo.assignee?.full_name || 'TBA'}</span>
+                    <span className="text-xs text-slate-600 font-medium truncate">{wo.assignee?.full_name || 'TBA'}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-xs font-mono text-slate-400">
+                <td className="px-4 py-3 text-[11px] font-mono text-slate-400">
                   {new Date(wo.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onEdit?.(wo)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-blue-600 transition-colors cursor-pointer whitespace-nowrap">Edit</button>
-                    <button onClick={() => onDelete?.(wo.id)} className="p-1 px-2 text-[10px] font-bold uppercase text-slate-600 hover:text-rose-600 transition-colors cursor-pointer whitespace-nowrap">Delete</button>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => onEdit?.(wo)} className="p-1.5 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    {onDelete && (
+                      <button onClick={() => onDelete(wo.id)} className="p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
