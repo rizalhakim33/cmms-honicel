@@ -589,7 +589,23 @@ export default function App() {
   const handleImportWorkOrders = async (newData: any[]) => {
     try {
       setLoading(true);
-      const { error } = await supabase.from('work_orders').insert(newData);
+      
+      const validLaborIds = new Set(labor.map(l => l.id));
+      const validAssetIds = new Set(assets.map(a => a.id));
+      const validPmIds = new Set(pmSchedules.map(pm => pm.id));
+
+      const processedData = newData.map((item, idx) => {
+        if (!validAssetIds.has(item.asset_id)) {
+          throw new Error(`Data CSV baris ${idx + 1} gagal: Asset ID '${item.asset_id}' tidak ditemukan di database.`);
+        }
+        return {
+          ...item,
+          assignee_id: item.assignee_id && validLaborIds.has(item.assignee_id) ? item.assignee_id : null,
+          pm_id: item.pm_id && validPmIds.has(item.pm_id) ? item.pm_id : null,
+        };
+      });
+
+      const { error } = await supabase.from('work_orders').insert(processedData);
       if (error) throw error;
       await fetchData();
     } catch (e: any) {
