@@ -592,7 +592,7 @@ export default function App() {
       
       const validLaborIds = new Set(labor.map(l => l.id));
       const validAssetIds = new Set(assets.map(a => a.id));
-      const validPmIds = new Set(pmSchedules.map(pm => pm.id));
+      const validPmIds = new Set(pms.map(pm => pm.id));
 
       const processedData = newData.map((item, idx) => {
         if (!validAssetIds.has(item.asset_id)) {
