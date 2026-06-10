@@ -1129,9 +1129,13 @@ export default function App() {
                       className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer text-slate-705 font-bold outline-none"
                     >
                       <option value="">Semua Mesin</option>
-                      {assets.map(a => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                      ))}
+                      {assets.map(a => {
+                        const parentAsset = a.parent_id ? assets.find(p => p.id === a.parent_id) : null;
+                        const displayName = parentAsset ? `${parentAsset.name} - ${a.name}` : a.name;
+                        return (
+                          <option key={a.id} value={a.id}>{displayName}</option>
+                        );
+                      })}
                     </select>
                   </div>
 

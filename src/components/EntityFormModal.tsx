@@ -223,7 +223,13 @@ export const EntityFormModal: React.FC<Props> = ({
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     >
                       <option value="">Select Asset</option>
-                      {assets.map(a => <option key={a.id} value={a.id}>{a.name} {a.asset_code ? `(${a.asset_code})` : ''}</option>)}
+                      {assets.map(a => {
+                        const parentAsset = a.parent_id ? assets.find((p: any) => p.id === a.parent_id) : null;
+                        const displayName = parentAsset ? `${parentAsset.name} - ${a.name}` : a.name;
+                        return (
+                          <option key={a.id} value={a.id}>{displayName} {a.asset_code ? `(${a.asset_code})` : ''}</option>
+                        );
+                      })}
                     </select>
                   </div>
                   <div>
@@ -461,7 +467,13 @@ export const EntityFormModal: React.FC<Props> = ({
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   >
                     <option value="">Select Asset</option>
-                    {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    {assets.map(a => {
+                      const parentAsset = a.parent_id ? assets.find((p: any) => p.id === a.parent_id) : null;
+                      const displayName = parentAsset ? `${parentAsset.name} - ${a.name}` : a.name;
+                      return (
+                        <option key={a.id} value={a.id}>{displayName}</option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
