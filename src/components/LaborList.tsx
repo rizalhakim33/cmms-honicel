@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LaborProfile } from '../types';
 import { User, Shield, Briefcase, Mail, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, CheckSquare, Square } from 'lucide-react';
 import { useSort } from '../hooks/useSort';
+import { Pagination } from './Pagination';
 
 interface Props {
   profiles: LaborProfile[];
@@ -9,17 +10,26 @@ interface Props {
   onDelete?: (id: string) => void;
   onBulkDelete?: (ids: string[]) => void;
   viewMode?: 'grid' | 'list';
+  itemsPerPage?: number;
 }
 
-export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkDelete, viewMode = 'list' }) => {
+export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkDelete, viewMode = 'list', itemsPerPage = 20 }) => {
   const { sortedItems, sortField, sortDirection, handleSort } = useSort(profiles, 'full_name', 'asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedItems.length, sortField, sortDirection]);
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedItems = sortedItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === profiles.length && profiles.length > 0) {
+    if (selectedIds.size === paginatedItems.length && paginatedItems.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(profiles.map(item => item.id)));
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)));
     }
   };
 
@@ -61,11 +71,11 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
     </div>
   ) : null;
 
-  const selectAllCheckbox = profiles.length > 0 && onBulkDelete ? (
+  const selectAllCheckbox = paginatedItems.length > 0 && onBulkDelete ? (
     <div className="flex items-center gap-2 mb-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
       <input 
         type="checkbox"
-        checked={selectedIds.size === profiles.length}
+        checked={selectedIds.size === paginatedItems.length}
         onChange={toggleSelectAll}
         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
         id="selectAllLabor"
@@ -81,13 +91,13 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
     return (
       <div className="flex flex-col">
         {bulkActionHeader || selectAllCheckbox}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedItems.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+          {paginatedItems.length === 0 ? (
             <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
               No active labor profiles found.
             </div>
           ) : (
-            sortedItems.map((person) => (
+            paginatedItems.map((person) => (
               <div key={person.id} className={`bg-white rounded-xl border ${selectedIds.has(person.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'} p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative`}>
                 <div className="absolute top-4 right-4 z-10 hidden group-hover:block data-[selected=true]:block" data-selected={selectedIds.has(person.id)}>
                   <input 
@@ -124,6 +134,13 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
             ))
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={sortedItems.length}
+          itemsPerPage={itemsPerPage}
+        />
       </div>
     );
   }
@@ -159,7 +176,7 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
               <th className="w-12 px-6 py-4">
                 <input 
                   type="checkbox"
-                  checked={profiles.length > 0 && selectedIds.size === profiles.length}
+                  checked={paginatedItems.length > 0 && selectedIds.size === paginatedItems.length}
                   onChange={toggleSelectAll}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
@@ -177,14 +194,14 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {sortedItems.length === 0 ? (
+            {paginatedItems.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                   No active labor profiles found.
                 </td>
               </tr>
             ) : (
-              sortedItems.map((person) => (
+              paginatedItems.map((person) => (
                 <tr key={person.id} className={`hover:bg-slate-50 transition-colors group ${selectedIds.has(person.id) ? 'bg-blue-50/50' : ''}`}>
                   <td className="px-6 py-4 w-12">
                     <input 
@@ -235,6 +252,13 @@ export const LaborList: React.FC<Props> = ({ profiles, onEdit, onDelete, onBulkD
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={sortedItems.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 };

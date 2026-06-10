@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Asset } from '../types';
 import { Factory, MapPin, Cpu, CheckCircle2, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, CheckSquare, Square } from 'lucide-react';
 import { useSort } from '../hooks/useSort';
+import { Pagination } from './Pagination';
 
 interface Props {
   assets: Asset[];
@@ -9,18 +10,27 @@ interface Props {
   onDelete?: (id: string) => void;
   onBulkDelete?: (ids: string[]) => void;
   viewMode?: 'grid' | 'list';
+  itemsPerPage?: number;
 }
 
-export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDelete, viewMode = 'grid' }) => {
+export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDelete, viewMode = 'grid', itemsPerPage = 20 }) => {
   const topLevelAssets = assets.filter(a => !a.parent_id);
   const { sortedItems, sortField, sortDirection, handleSort } = useSort(topLevelAssets, 'name', 'asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedItems.length, sortField, sortDirection]);
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedItems = sortedItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === assets.length && assets.length > 0) {
+    if (selectedIds.size === paginatedItems.length && paginatedItems.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(assets.map(item => item.id)));
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)));
     }
   };
 
@@ -211,7 +221,7 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDel
               <th className="w-12 px-6 py-4">
                 <input 
                   type="checkbox"
-                  checked={assets.length > 0 && selectedIds.size === assets.length}
+                  checked={paginatedItems.length > 0 && selectedIds.size === paginatedItems.length}
                   onChange={toggleSelectAll}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
@@ -230,14 +240,14 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDel
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {sortedItems.length === 0 ? (
+            {paginatedItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm italic">
                   No assets registered in database.
                 </td>
               </tr>
             ) : (
-              sortedItems.map((asset) => (
+              paginatedItems.map((asset) => (
                 <React.Fragment key={asset.id}>
                   {renderListItem(asset)}
                   {getChildren(asset.id).map(child => renderListItem(child, true))}
@@ -246,6 +256,13 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDel
             )}
           </tbody>
         </table>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={sortedItems.length}
+          itemsPerPage={itemsPerPage}
+        />
       </div>
     );
   }
@@ -253,12 +270,12 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDel
   return (
     <div className="flex flex-col gap-6">
       {bulkActionHeader}
-      {sortedItems.length === 0 ? (
+      {paginatedItems.length === 0 ? (
         <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
           No assets registered in database.
         </div>
       ) : (
-        sortedItems.map((asset) => (
+        paginatedItems.map((asset) => (
           <div key={asset.id} className="flex flex-col gap-4">
             {renderGridItem(asset)}
             {getChildren(asset.id).length > 0 && (
@@ -269,6 +286,13 @@ export const AssetList: React.FC<Props> = ({ assets, onEdit, onDelete, onBulkDel
           </div>
         ))
       )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={sortedItems.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 };

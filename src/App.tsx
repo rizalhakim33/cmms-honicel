@@ -1087,6 +1087,7 @@ export default function App() {
                     </div>
                   ) : (
                     <WorkOrderTable 
+                      itemsPerPage={10}
                       workOrders={workOrders
                         .filter(wo => 
                           wo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1173,8 +1174,8 @@ export default function App() {
                     <CSVImportExport
                       data={getFilteredWorkOrders()}
                       fileName="honicel_work_orders"
-                      fields={['title', 'repair_type', 'status', 'priority', 'asset_id', 'assignee_id', 'pm_id', 'created_at']}
-                      humanHeaders={['Judul', 'Tipe Perbaikan', 'Status', 'Prioritas', 'ID Asset', 'ID Pegawai', 'ID PM', 'Tanggal Dibuat']}
+                      fields={['title', 'repair_type', 'status', 'priority', 'asset_id', 'assignee_id', 'pm_id', 'replaced_sparepart_name', 'replaced_sparepart_qty', 'created_at']}
+                      humanHeaders={['Judul', 'Tipe Perbaikan', 'Status', 'Prioritas', 'ID Asset', 'ID Pegawai', 'ID PM', 'Sparepart Diganti', 'Qty Sparepart', 'Tanggal Dibuat']}
                       type="work_order"
                       onImport={handleImportWorkOrders}
                     />

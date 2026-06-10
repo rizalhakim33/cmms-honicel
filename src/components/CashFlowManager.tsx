@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { CashFlow } from '../types';
 import { CSVImportExport } from './CSVImportExport';
 import { useSort } from '../hooks/useSort';
+import { Pagination } from './Pagination';
 import { 
   Plus, 
   TrendingDown, 
@@ -18,7 +19,8 @@ import {
   HelpCircle,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Trash2
 } from 'lucide-react';
 
 interface CashFlowManagerProps {
@@ -33,6 +35,7 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
 
   // Filters and Forms
   const [typeFilter, setTypeFilter] = useState<'all' | 'sparepart' | 'operational'>('all');
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<'sparepart' | 'operational'>('operational');
@@ -159,6 +162,7 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
 
       if (delErr) throw delErr;
       setSuccess('Transaksi berhasil dihapus.');
+      setSelectedRows(new Set());
       fetchCashFlows();
     } catch (err: any) {
       console.error("Delete failed, falling back locally:", err);
@@ -166,7 +170,53 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
       setCashFlows(filtered);
       localStorage.setItem('honicel_cashflows', JSON.stringify(filtered));
       setSuccess('Transaksi dihapus secara lokal.');
+      setSelectedRows(new Set());
       setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.size === 0) return;
+    if (!confirm(`Hapus ${selectedRows.size} pengeluaran terpilih?`)) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('cash_flows')
+        .delete()
+        .in('id', Array.from(selectedRows));
+        
+      if (error) throw error;
+      setSuccess(`${selectedRows.size} pengeluaran dihapus.`);
+      setSelectedRows(new Set());
+      fetchCashFlows();
+    } catch (err: any) {
+      console.error("Bulk delete failed:", err);
+      const filtered = cashFlows.filter(x => !selectedRows.has(x.id));
+      setCashFlows(filtered);
+      localStorage.setItem('honicel_cashflows', JSON.stringify(filtered));
+      setSuccess('Item terpilih dihapus secara lokal.');
+      setSelectedRows(new Set());
+      setLoading(false);
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedRows(newSelected);
+  };
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>, currentItems: CashFlow[]) => {
+    if (e.target.checked) {
+      const newSelected = new Set(selectedRows);
+      currentItems.forEach(item => newSelected.add(item.id));
+      setSelectedRows(newSelected);
+    } else {
+      const newSelected = new Set(selectedRows);
+      currentItems.forEach(item => newSelected.delete(item.id));
+      setSelectedRows(newSelected);
     }
   };
 
@@ -185,6 +235,16 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
   };
 
   const { sortedItems, sortField, sortDirection, handleSort } = useSort(filteredCashFlows, 'date', 'desc');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedItems.length, sortField, sortDirection, typeFilter]);
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedItems = sortedItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const SortIcon = ({ field }: { field: keyof CashFlow }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
@@ -370,15 +430,24 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
         <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-bold text-slate-800 text-base">Riwayat Transaksi Pengeluaran</h3>
-            <p className="text-xs text-slate-400">Total {filteredCashFlows.length} transaksi audit</p>
+            <p className="text-xs text-slate-400">Total {filteredCashFlows.length} transaksi audit {selectedRows.size > 0 && `• ${selectedRows.size} selected`}</p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 uppercase font-bold flex items-center gap-1">
-              <Filter size={12} /> Tipe:
-            </span>
-            <select 
-              value={typeFilter}
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedRows.size > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border border-rose-100"
+              >
+                <Trash2 size={14} /> Delete Selected
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 uppercase font-bold flex items-center gap-1">
+                <Filter size={12} /> Tipe:
+              </span>
+              <select 
+                value={typeFilter}
               onChange={(e: any) => setTypeFilter(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold"
             >
@@ -401,6 +470,14 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
+                  <th className="px-6 py-3.5 w-10">
+                    <input 
+                      type="checkbox"
+                      checked={paginatedItems.length > 0 && paginatedItems.every(x => selectedRows.has(x.id))}
+                      onChange={(e) => toggleSelectAll(e, paginatedItems)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('date')}>
                      <div className="flex items-center gap-1.5">Tanggal <SortIcon field="date" /></div>
                   </th>
@@ -417,8 +494,16 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {sortedItems.map((cf) => (
-                  <tr key={cf.id} className="hover:bg-slate-50/50 transition-all">
+                {paginatedItems.map((cf) => (
+                  <tr key={cf.id} className={`hover:bg-slate-50/50 transition-all ${selectedRows.has(cf.id) ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-6 py-4">
+                      <input 
+                        type="checkbox"
+                        checked={selectedRows.has(cf.id)}
+                        onChange={() => toggleSelectRow(cf.id)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-6 py-4 text-xs font-medium text-slate-500 whitespace-nowrap">
                       {new Date(cf.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </td>
@@ -449,9 +534,17 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
             </table>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-              {sortedItems.map((cf) => (
-                <div key={cf.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative">
-                  <div className="flex justify-between items-start mb-3">
+              {paginatedItems.map((cf) => (
+                <div key={cf.id} className={`bg-white rounded-xl border p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative ${selectedRows.has(cf.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'}`}>
+                  <div className="absolute top-4 right-4 z-10">
+                    <input 
+                      type="checkbox"
+                      checked={selectedRows.has(cf.id)}
+                      onChange={() => toggleSelectRow(cf.id)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm w-4 h-4"
+                    />
+                  </div>
+                  <div className="flex justify-between items-start mb-3 pr-8">
                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
                       cf.type === 'sparepart' 
                         ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
@@ -480,6 +573,15 @@ export const CashFlowManager: React.FC<CashFlowManagerProps> = ({ viewMode = 'li
             </div>
           )}
         </div>
+        {filteredCashFlows.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={sortedItems.length}
+            itemsPerPage={itemsPerPage}
+          />
+        )}
       </div>
 
       {/* Manual Cost modal */}

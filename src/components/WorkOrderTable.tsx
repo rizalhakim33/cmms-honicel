@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkOrder, WOPriority, WOStatus } from '../types';
 import { Circle, Clock, CheckCircle2, AlertTriangle, User, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, CheckSquare, Square } from 'lucide-react';
 import { useSort } from '../hooks/useSort';
+import { Pagination } from './Pagination';
 
 const priorityColors: Record<WOPriority, string> = {
   low: 'border-blue-100 text-blue-700 bg-blue-100',
@@ -23,17 +24,26 @@ interface Props {
   onDelete?: (id: string) => void;
   onBulkDelete?: (ids: string[]) => void;
   viewMode?: 'grid' | 'list';
+  itemsPerPage?: number;
 }
 
-export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, onBulkDelete, viewMode = 'list' }) => {
+export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, onBulkDelete, viewMode = 'list', itemsPerPage = 20 }) => {
   const { sortedItems, sortField, sortDirection, handleSort } = useSort(workOrders, 'created_at', 'desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedItems.length, sortField, sortDirection]);
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedItems = sortedItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === sortedItems.length && sortedItems.length > 0) {
+    if (selectedIds.size === paginatedItems.length && paginatedItems.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(sortedItems.map(item => item.id)));
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)));
     }
   };
 
@@ -69,13 +79,13 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
             </button>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedItems.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {paginatedItems.length === 0 ? (
             <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
               No active work orders found.
             </div>
           ) : (
-            sortedItems.map((wo) => (
+            paginatedItems.map((wo) => (
               <div key={wo.id} className={`bg-white border ${selectedIds.has(wo.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'} rounded-xl p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col group relative`}>
                 <div className="absolute top-4 right-4 z-10 hidden group-hover:block data-[selected=true]:block" data-selected={selectedIds.has(wo.id)}>
                   <input 
@@ -143,6 +153,13 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
             ))
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={sortedItems.length}
+          itemsPerPage={itemsPerPage}
+        />
       </div>
     );
   }
@@ -177,7 +194,7 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
             <th className="w-12 px-4 py-3">
               <input 
                 type="checkbox"
-                checked={sortedItems.length > 0 && selectedIds.size === sortedItems.length}
+                checked={paginatedItems.length > 0 && selectedIds.size === paginatedItems.length}
                 onChange={toggleSelectAll}
                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
@@ -207,14 +224,14 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {sortedItems.length === 0 ? (
+          {paginatedItems.length === 0 ? (
             <tr>
               <td colSpan={9} className="px-4 py-12 text-center text-slate-400 text-sm italic">
                 No active work orders found.
               </td>
             </tr>
           ) : (
-            sortedItems.map((wo) => (
+            paginatedItems.map((wo) => (
               <tr 
                 key={wo.id} 
                 className={`group hover:bg-slate-50 transition-colors ${selectedIds.has(wo.id) ? 'bg-blue-50/50' : ''}`}
@@ -298,6 +315,13 @@ export const WorkOrderTable: React.FC<Props> = ({ workOrders, onEdit, onDelete, 
           )}
         </tbody>
       </table>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={sortedItems.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 };

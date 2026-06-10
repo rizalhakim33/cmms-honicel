@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Sparepart, InstalledSparepart, Asset } from '../types';
 import { CSVImportExport } from './CSVImportExport';
 import { useSort } from '../hooks/useSort';
+import { Pagination } from './Pagination';
 import { 
   Plus, 
   Search, 
@@ -39,6 +40,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
   // Search and tabs
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'installed'>('inventory');
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -240,6 +242,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
       
       if (delError) throw delError;
       setSuccess('Suku cadang dihapus.');
+      setSelectedRows(new Set());
       fetchSparepartsData();
     } catch (err: any) {
       console.error("Supabase delete failed:", err);
@@ -247,8 +250,55 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
       setSpareparts(filtered);
       localStorage.setItem('honicel_spareparts', JSON.stringify(filtered));
       setSuccess('Item dihapus secara lokal.');
+      setSelectedRows(new Set());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.size === 0) return;
+    if (!confirm(`Hapus ${selectedRows.size} suku cadang terpilih?`)) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('spareparts')
+        .delete()
+        .in('id', Array.from(selectedRows));
+        
+      if (error) throw error;
+      setSuccess(`${selectedRows.size} suku cadang dihapus.`);
+      setSelectedRows(new Set());
+      fetchSparepartsData();
+    } catch (err: any) {
+      console.error("Bulk delete failed:", err);
+      const filtered = spareparts.filter(x => !selectedRows.has(x.id));
+      setSpareparts(filtered);
+      localStorage.setItem('honicel_spareparts', JSON.stringify(filtered));
+      setSuccess('Suku cadang terpilih dihapus secara lokal.');
+      setSelectedRows(new Set());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedRows(newSelected);
+  };
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>, currentItems: Sparepart[]) => {
+    if (e.target.checked) {
+      const newSelected = new Set(selectedRows);
+      currentItems.forEach(item => newSelected.add(item.id));
+      setSelectedRows(newSelected);
+    } else {
+      const newSelected = new Set(selectedRows);
+      currentItems.forEach(item => newSelected.delete(item.id));
+      setSelectedRows(newSelected);
     }
   };
 
@@ -335,6 +385,19 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
 
   const { sortedItems: sortedSpareparts, sortField: sortFieldSp, sortDirection: sortDirSp, handleSort: handleSortSp } = useSort(filteredSpareparts, 'name', 'asc');
   const { sortedItems: sortedInstalled, sortField: sortFieldInst, sortDirection: sortDirInst, handleSort: handleSortInst } = useSort(processedInstalled, 'installed_at', 'desc');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedSpareparts.length, sortedInstalled.length, activeSubTab, searchTerm]);
+
+  const activeItems = activeSubTab === 'inventory' ? sortedSpareparts : sortedInstalled;
+  const totalPages = Math.ceil(activeItems.length / itemsPerPage);
+  
+  const paginatedSpareparts = sortedSpareparts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedInstalled = sortedInstalled.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const SortIconSp = ({ field }: { field: keyof Sparepart }) => {
     if (sortFieldSp !== field) return <ArrowUpDown className="w-3 h-3 text-slate-300" />;
@@ -427,6 +490,17 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
 
       {/* Main Panel Content */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {activeSubTab === 'inventory' && selectedRows.size > 0 && (
+          <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-600">{selectedRows.size} suku cadang dipilih</span>
+            <button 
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border border-rose-100"
+            >
+              <Trash2 size={14} /> Hapus Terpilih
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="p-20 text-center flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin" />
@@ -445,6 +519,14 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 font-bold text-[11px] tracking-wider text-slate-400 uppercase">
+                    <th className="px-6 py-3.5 w-10">
+                      <input 
+                        type="checkbox"
+                        checked={paginatedSpareparts.length > 0 && paginatedSpareparts.every(x => selectedRows.has(x.id))}
+                        onChange={(e) => toggleSelectAll(e, paginatedSpareparts)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </th>
                     <th className="px-6 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSortSp('name')}>
                       <div className="flex items-center gap-1.5">Nama Suku Cadang <SortIconSp field="name" /></div>
                     </th>
@@ -461,8 +543,16 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                  {sortedSpareparts.map((sp) => (
-                    <tr key={sp.id} className="hover:bg-slate-50/50 transition-all">
+                  {paginatedSpareparts.map((sp) => (
+                    <tr key={sp.id} className={`hover:bg-slate-50/50 transition-all ${selectedRows.has(sp.id) ? 'bg-blue-50/30' : ''}`}>
+                      <td className="px-6 py-4">
+                        <input 
+                          type="checkbox"
+                          checked={selectedRows.has(sp.id)}
+                          onChange={() => toggleSelectRow(sp.id)}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4 font-bold text-slate-800">{sp.name}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -501,9 +591,17 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               </table>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50">
-                {sortedSpareparts.map((sp) => (
-                  <div key={sp.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group">
-                     <div className="flex justify-between w-full mb-3">
+                {paginatedSpareparts.map((sp) => (
+                  <div key={sp.id} className={`bg-white rounded-xl border p-5 shadow-sm hover:border-blue-500 transition-all flex flex-col items-start relative group ${selectedRows.has(sp.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'}`}>
+                    <div className="absolute top-4 right-4 z-10 w-full flex justify-end pr-8">
+                       <input 
+                         type="checkbox"
+                         checked={selectedRows.has(sp.id)}
+                         onChange={() => toggleSelectRow(sp.id)}
+                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm w-4 h-4 ml-auto"
+                       />
+                    </div>
+                     <div className="flex justify-between w-full mb-3 pr-8">
                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                           <Package size={20} />
                        </div>
@@ -565,7 +663,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                    {sortedInstalled.map((ip) => {
+                    {paginatedInstalled.map((ip) => {
                       const { accumulated, remaining, health, isHistorical } = ip as any;
                       return (
                         <tr key={ip.id} className={`hover:bg-slate-50/50 transition-all ${isHistorical ? 'bg-slate-50/30' : ''}`}>
@@ -634,7 +732,7 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {sortedInstalled.map((ip) => {
+                {paginatedInstalled.map((ip) => {
                   const { accumulated, remaining, health, isHistorical } = ip as any;
                   return (
                     <div 
@@ -722,6 +820,17 @@ export const SparepartsManager: React.FC<Props> = ({ assets, userRole, viewMode 
                 })}
               </div>
             )}
+          </div>
+        )}
+        {(activeSubTab === 'inventory' ? filteredSpareparts.length > 0 : processedInstalled.length > 0) && (
+          <div className="border-t border-slate-100">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={activeSubTab === 'inventory' ? sortedSpareparts.length : sortedInstalled.length}
+              itemsPerPage={itemsPerPage}
+            />
           </div>
         )}
       </div>

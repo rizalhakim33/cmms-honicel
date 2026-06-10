@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PMSchedule } from '../types';
 import { Calendar, Clock, RefreshCw, AlertTriangle, Edit2, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Pagination } from './Pagination';
 
 interface Props {
   schedules: PMSchedule[];
@@ -8,16 +9,26 @@ interface Props {
   onDelete?: (id: string) => void;
   onBulkDelete?: (ids: string[]) => void;
   viewMode?: 'grid' | 'list';
+  itemsPerPage?: number;
 }
 
-export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDelete, viewMode = 'list' }) => {
+export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDelete, viewMode = 'list', itemsPerPage = 20 }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [schedules.length]);
+
+  const sortedSchedules = [...schedules].sort((a, b) => new Date(a.next_due_at).getTime() - new Date(b.next_due_at).getTime());
+  const totalPages = Math.ceil(sortedSchedules.length / itemsPerPage);
+  const paginatedItems = sortedSchedules.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === schedules.length && schedules.length > 0) {
+    if (selectedIds.size === paginatedItems.length && paginatedItems.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(schedules.map(item => item.id)));
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)));
     }
   };
 
@@ -54,11 +65,11 @@ export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDel
     </div>
   ) : null;
 
-  const selectAllCheckbox = schedules.length > 0 && onBulkDelete ? (
+  const selectAllCheckbox = paginatedItems.length > 0 && onBulkDelete ? (
     <div className="flex items-center gap-2 mb-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
       <input 
         type="checkbox"
-        checked={selectedIds.size === schedules.length}
+        checked={selectedIds.size === paginatedItems.length}
         onChange={toggleSelectAll}
         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
         id="selectAllPMs"
@@ -74,13 +85,13 @@ export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDel
     return (
       <div className="flex flex-col">
         {bulkActionHeader || selectAllCheckbox}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schedules.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {paginatedItems.length === 0 ? (
             <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
               No preventive maintenance schedules defined.
             </div>
           ) : (
-            schedules.map((pm) => {
+            paginatedItems.map((pm) => {
               const isOverdue = new Date(pm.next_due_at) < new Date();
               return (
                 <div key={pm.id} className={`bg-white rounded-xl border p-5 shadow-sm flex flex-col group transition-all relative ${isOverdue ? 'border-rose-200' : 'border-slate-200 hover:border-blue-300'} ${selectedIds.has(pm.id) ? 'ring-1 ring-blue-500' : ''}`}>
@@ -137,6 +148,13 @@ export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDel
             })
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={sortedSchedules.length}
+          itemsPerPage={itemsPerPage}
+        />
       </div>
     );
   }
@@ -144,12 +162,12 @@ export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDel
   return (
     <div className="space-y-4">
       {bulkActionHeader || selectAllCheckbox}
-      {schedules.length === 0 ? (
+      {paginatedItems.length === 0 ? (
         <div className="py-12 text-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
           No preventive maintenance schedules defined.
         </div>
       ) : (
-        schedules.map((pm) => {
+        paginatedItems.map((pm) => {
           const isOverdue = new Date(pm.next_due_at) < new Date();
           
           return (
@@ -207,6 +225,13 @@ export const PMList: React.FC<Props> = ({ schedules, onEdit, onDelete, onBulkDel
           );
         })
       )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={sortedSchedules.length}
+        itemsPerPage={itemsPerPage}
+      />
     </div>
   );
 };
